@@ -1,5 +1,10 @@
 ﻿# uiautomator-rs
 
+[![crates.io - uiautomator](https://img.shields.io/crates/v/uiautomator.svg)](https://crates.io/crates/uiautomator)
+[![docs.rs - uiautomator](https://docs.rs/uiautomator/badge.svg)](https://docs.rs/uiautomator)
+[![crates.io - uiautomator-cli](https://img.shields.io/crates/v/uiautomator-cli.svg)](https://crates.io/crates/uiautomator-cli)
+[![docs.rs - uiautomator-cli](https://docs.rs/uiautomator-cli/badge.svg)](https://docs.rs/uiautomator-cli)
+
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
 Rust implementation of Android UI automation with a Python `uiautomator2`-style API.
@@ -133,3 +138,4 @@ See [PUBLISHING.md](./PUBLISHING.md) for the fixed release process and package c
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+

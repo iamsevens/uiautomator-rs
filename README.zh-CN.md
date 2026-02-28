@@ -2,6 +2,11 @@
 
 # uiautomator-rs
 
+[![crates.io - uiautomator](https://img.shields.io/crates/v/uiautomator.svg)](https://crates.io/crates/uiautomator)
+[![docs.rs - uiautomator](https://docs.rs/uiautomator/badge.svg)](https://docs.rs/uiautomator)
+[![crates.io - uiautomator-cli](https://img.shields.io/crates/v/uiautomator-cli.svg)](https://crates.io/crates/uiautomator-cli)
+[![docs.rs - uiautomator-cli](https://docs.rs/uiautomator-cli/badge.svg)](https://docs.rs/uiautomator-cli)
+
 使用 Rust 实现的 Android UI 自动化测试库，复刻 Python uiautomator2 的核心功能。
 
 ## 特性
@@ -1546,5 +1551,6 @@ cargo run --example basic
 ---
 
 **注意**: 本项目仅用于自动化测试和开发目的。请遵守相关法律法规，不要用于非法用途。
+
 
 
