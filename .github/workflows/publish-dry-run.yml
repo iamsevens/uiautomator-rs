@@ -3,9 +3,17 @@ name: Publish Dry Run
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-dry-run-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   dry-run:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -56,7 +64,7 @@ jobs:
           set -euo pipefail
           crate_file="$(ls -t uiautomator/target/package/uiautomator-*.crate | head -n1)"
           if [ -z "${crate_file}" ]; then
-            echo "未找到 uiautomator .crate 文件"
+            echo "uiautomator .crate file not found"
             exit 1
           fi
 
@@ -86,10 +94,10 @@ jobs:
           status_code="$(curl -sS -o /dev/null -w "%{http_code}" https://crates.io/api/v1/crates/uiautomator)"
           if [ "$status_code" = "200" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "uiautomator 已存在于 crates.io，执行 CLI dry-run publish。"
+            echo "uiautomator exists on crates.io; will run CLI dry-run publish."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "uiautomator 还未发布到 crates.io（HTTP $status_code），跳过 CLI dry-run publish。"
+            echo "uiautomator not found on crates.io (HTTP $status_code); skip CLI dry-run publish."
           fi
 
       - name: Dry-run publish uiautomator-cli

@@ -2,10 +2,32 @@ name: Mock UiObject Guard
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "uiautomator/src/**"
+      - "uiautomator/tests/mock_uiobject_test.rs"
+      - "uiautomator/Cargo.toml"
+      - ".github/workflows/mock-uiobject-guard.yml"
+  push:
+    branches: [main]
+    paths:
+      - "uiautomator/src/**"
+      - "uiautomator/tests/mock_uiobject_test.rs"
+      - "uiautomator/Cargo.toml"
+      - ".github/workflows/mock-uiobject-guard.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mock-uiobject-guard-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   mock-uiobject-ignored:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: uiautomator
