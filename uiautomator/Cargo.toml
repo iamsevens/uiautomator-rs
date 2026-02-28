@@ -13,11 +13,6 @@ categories = ["development-tools::testing", "api-bindings"]
 include = [
     "/src/**",
     "/assets/u2.jar",
-    "/assets/atx-agent",
-    "/assets/atx-agent-386",
-    "/assets/atx-agent-amd64",
-    "/assets/atx-agent-arm64",
-    "/assets/atx-agent-armv7",
     "/assets/app-uiautomator.apk",
     "/assets/app-uiautomator-test.apk",
     "/assets/download_atx_agent.sh",

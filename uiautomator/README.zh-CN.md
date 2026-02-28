@@ -113,6 +113,10 @@ uiautomator = "0.1.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
+说明：
+- 为满足 crates.io 包体积限制，`uiautomator` 发布包不再内置多架构 `atx-agent` 二进制。
+- 推荐先使用 `uiautomator-cli init`（或其他外部方式）完成设备侧 ATX-Agent 环境初始化，再使用 `AtxAgent` 模式。
+
 ### 基础使用
 
 ```rust

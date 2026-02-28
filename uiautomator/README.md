@@ -27,6 +27,10 @@ Optional ATX-Agent installer support:
 uiautomator = { version = "0.1", features = ["atx-agent-install"] }
 ```
 
+Note:
+- The `uiautomator` crate package does not embed multi-arch `atx-agent` binaries to keep publish size within crates.io limits.
+- Recommended setup path is `uiautomator-cli init` (or equivalent external provisioning) before using `AtxAgent` mode.
+
 ## Minimal Example
 
 ```rust
