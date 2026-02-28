@@ -48,6 +48,14 @@ pub struct Device {
 }
 
 impl Device {
+    fn atx_agent_init_guidance(serial: &str) -> String {
+        format!(
+            "请先初始化设备端 ATX-Agent：`uiautomator init --serial {} --force`。\
+             若从源码运行 CLI，请执行：`cd uiautomator-cli && cargo run -- init --serial {} --force`。",
+            serial, serial
+        )
+    }
+
     /// 连接到设备（使用自动检测模式）
     ///
     /// 自动检测逻辑：
@@ -187,12 +195,25 @@ impl Device {
         let settings = Arc::new(RwLock::new(Settings::default()));
 
         // 创建 ATX-Agent 客户端
-        let atx_agent_client =
-            Arc::new(AtxAgentClient::new(serial.clone(), adb_client.clone()).await?);
+        let atx_agent_client = Arc::new(
+            AtxAgentClient::new(serial.clone(), adb_client.clone())
+                .await
+                .map_err(|e| {
+                    Error::DeviceConnection(format!(
+                        "创建 ATX-Agent 客户端失败: {}。{}",
+                        e,
+                        Self::atx_agent_init_guidance(&serial)
+                    ))
+                })?,
+        );
 
         // 检查 atx-agent 是否可用
         if !atx_agent_client.is_available().await {
-            return Err(Error::DeviceConnection("ATX-Agent 不可用".to_string()));
+            return Err(Error::DeviceConnection(format!(
+                "ATX-Agent 不可用（设备: {}）。{}",
+                serial,
+                Self::atx_agent_init_guidance(&serial)
+            )));
         }
 
         // 创建 JSON-RPC 客户端（ATX-Agent 模式）
@@ -203,12 +224,29 @@ impl Device {
                 atx_agent_client,
                 settings.clone(),
             )
-            .await?,
+            .await
+            .map_err(|e| {
+                Error::DeviceConnection(format!(
+                    "ATX-Agent 模式初始化失败: {}。{}",
+                    e,
+                    Self::atx_agent_init_guidance(&serial)
+                ))
+            })?,
         );
 
         // 验证服务状态
-        if !jsonrpc_client.ping().await? {
-            return Err(Error::UiAutomatorNotConnected);
+        let ping_ok = jsonrpc_client.ping().await.map_err(|e| {
+            Error::DeviceConnection(format!(
+                "ATX-Agent 模式连通性检查失败: {}。{}",
+                e,
+                Self::atx_agent_init_guidance(&serial)
+            ))
+        })?;
+        if !ping_ok {
+            return Err(Error::DeviceConnection(format!(
+                "ATX-Agent 模式连通性检查失败（ping=false）。{}",
+                Self::atx_agent_init_guidance(&serial)
+            )));
         }
 
         info!("设备连接成功（ATX-Agent 模式）");
@@ -2670,6 +2708,14 @@ mod tests {
 
         assert_eq!(mode1, mode2);
         assert_eq!(mode1, mode3);
+    }
+
+    #[test]
+    fn test_atx_agent_init_guidance_contains_cli_command() {
+        let serial = "emulator-5554";
+        let message = Device::atx_agent_init_guidance(serial);
+        assert!(message.contains("uiautomator init --serial emulator-5554 --force"));
+        assert!(message.contains("uiautomator-cli"));
     }
 
     // 测试需求 1.2: 自动设备选择（无序列号且仅一个设备）
