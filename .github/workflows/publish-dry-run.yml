@@ -58,6 +58,12 @@ jobs:
           cd uiautomator
           cargo publish --dry-run
 
+      - name: Package uiautomator for size check
+        shell: bash
+        run: |
+          cd uiautomator
+          cargo package --allow-dirty
+
       - name: Check uiautomator package size budget
         shell: bash
         run: |
