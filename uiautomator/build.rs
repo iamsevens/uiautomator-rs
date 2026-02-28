@@ -4,6 +4,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 fn main() {
+    let docs_rs = env::var_os("DOCS_RS").is_some();
+
     emit_md5_env(
         "U2_JAR_MD5",
         Path::new("assets/u2.jar"),
@@ -26,7 +28,7 @@ fn main() {
         Some("atx-agent file is missing"),
     );
 
-    generate_atx_agent_assets_module();
+    generate_atx_agent_assets_module(docs_rs);
 }
 
 fn emit_md5_env(var_name: &str, path: &Path, warning: Option<&str>) {
@@ -43,7 +45,7 @@ fn emit_md5_env(var_name: &str, path: &Path, warning: Option<&str>) {
     println!("cargo:rerun-if-changed={}", path.display());
 }
 
-fn generate_atx_agent_assets_module() {
+fn generate_atx_agent_assets_module(skip_binary_assets: bool) {
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR is not set"));
     let out_file = out_dir.join("atx_agent_assets.rs");
     let mut file = File::create(&out_file).expect("failed to create atx_agent_assets.rs");
@@ -56,35 +58,46 @@ fn generate_atx_agent_assets_module() {
         "ATX_AGENT_LEGACY",
         "ATX_AGENT_MD5_LEGACY",
         Path::new("assets/atx-agent"),
+        skip_binary_assets,
     );
     emit_atx_agent_const(
         &mut file,
         "ATX_AGENT_ARMV7",
         "ATX_AGENT_MD5_ARMV7",
         Path::new("assets/atx-agent-armv7"),
+        skip_binary_assets,
     );
     emit_atx_agent_const(
         &mut file,
         "ATX_AGENT_ARM64",
         "ATX_AGENT_MD5_ARM64",
         Path::new("assets/atx-agent-arm64"),
+        skip_binary_assets,
     );
     emit_atx_agent_const(
         &mut file,
         "ATX_AGENT_AMD64",
         "ATX_AGENT_MD5_AMD64",
         Path::new("assets/atx-agent-amd64"),
+        skip_binary_assets,
     );
     emit_atx_agent_const(
         &mut file,
         "ATX_AGENT_386",
         "ATX_AGENT_MD5_386",
         Path::new("assets/atx-agent-386"),
+        skip_binary_assets,
     );
 }
 
-fn emit_atx_agent_const(file: &mut File, const_name: &str, md5_env_name: &str, path: &Path) {
-    if path.exists() {
+fn emit_atx_agent_const(
+    file: &mut File,
+    const_name: &str,
+    md5_env_name: &str,
+    path: &Path,
+    skip_binary_assets: bool,
+) {
+    if !skip_binary_assets && path.exists() {
         let abs_path = fs::canonicalize(path)
             .unwrap_or_else(|_| panic!("failed to canonicalize {}", path.display()));
         let bytes = fs::read(path).unwrap_or_else(|_| panic!("failed to read {}", path.display()));
@@ -100,6 +113,12 @@ fn emit_atx_agent_const(file: &mut File, const_name: &str, md5_env_name: &str, p
         println!("cargo:rustc-env={md5_env_name}=placeholder");
         writeln!(file, "pub const {const_name}: &[u8] = &[];")
             .expect("failed to write empty const");
+        if skip_binary_assets {
+            println!(
+                "cargo:warning=skipping {} embedding in docs.rs build",
+                path.display()
+            );
+        }
     }
 
     writeln!(

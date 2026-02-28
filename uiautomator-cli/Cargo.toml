@@ -1,6 +1,6 @@
 [package]
 name = "uiautomator-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["uiautomator contributors"]
 description = "命令行工具，用于管理 Android 设备上的 ATX-Agent 服务"
@@ -36,6 +36,10 @@ include = [
     "/build.rs",
     "/LICENSE*",
 ]
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 name = "uiautomator_cli"

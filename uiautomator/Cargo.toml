@@ -1,6 +1,6 @@
 ﻿[package]
 name = "uiautomator"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Rust Android UI automation library compatible with Python uiautomator2."
 license = "MIT"
@@ -25,6 +25,10 @@ include = [
     "/build.rs",
     "/LICENSE*",
 ]
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = []
