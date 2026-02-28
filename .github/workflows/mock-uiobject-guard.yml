@@ -1,0 +1,20 @@
+name: Mock UiObject Guard
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mock-uiobject-ignored:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: uiautomator
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run ignored mock uiobject test
+        run: cargo test --test mock_uiobject_test -- --ignored --test-threads=1

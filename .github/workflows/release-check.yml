@@ -1,0 +1,72 @@
+name: Release Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package-check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Prepare assets (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m pip install --upgrade pip
+          python -m pip install uiautomator2
+
+          python - <<'PY'
+          import os
+          import shutil
+          import uiautomator2
+
+          assets = os.path.join(os.path.dirname(uiautomator2.__file__), "assets")
+          shutil.copy2(os.path.join(assets, "u2.jar"), "uiautomator/assets/u2.jar")
+          PY
+
+          bash ./uiautomator/assets/download_atx_agent.sh
+          bash ./uiautomator-cli/assets/download_atx_agent.sh
+
+          cp -f ./uiautomator-cli/assets/app-uiautomator.apk ./uiautomator/assets/app-uiautomator.apk
+
+      - name: Prepare assets (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install uiautomator2
+
+          python -c "import os, shutil, uiautomator2; assets=os.path.join(os.path.dirname(uiautomator2.__file__), 'assets'); shutil.copy2(os.path.join(assets, 'u2.jar'), r'uiautomator\\assets\\u2.jar')"
+
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\uiautomator\assets\download_atx_agent.ps1
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\uiautomator-cli\assets\download_atx_agent.ps1
+
+          Copy-Item .\uiautomator-cli\assets\app-uiautomator.apk .\uiautomator\assets\app-uiautomator.apk -Force
+
+      - name: Run package release checks (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash ./scripts/release-check.sh
+
+      - name: Run package release checks (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1

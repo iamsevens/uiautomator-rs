@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">UIAutomator Test App</string>
+
+    <!-- Main Menu -->
+    <string name="main_title">UIAutomator Test Suite</string>
+    <string name="main_subtitle">Select a test scenario</string>
+
+    <!-- Test Scenarios -->
+    <string name="test_basic_controls">Basic Controls</string>
+    <string name="test_gestures">Gestures</string>
+    <string name="test_input_forms">Input &amp; Forms</string>
+    <string name="test_lists">Lists &amp; Scrolling</string>
+    <string name="test_dialogs">Dialogs &amp; Popups</string>
+    <string name="test_navigation">Navigation</string>
+    <string name="test_animations">Animations</string>
+    <string name="test_stress">Stress Test</string>
+    <string name="test_concurrent">Concurrent Test</string>
+
+    <!-- Basic Controls -->
+    <string name="basic_title">Basic Controls Test</string>
+    <string name="btn_normal">Normal Button</string>
+    <string name="btn_disabled">Disabled Button</string>
+    <string name="cb_option">CheckBox Option</string>
+    <string name="rb_option1">Radio Option 1</string>
+    <string name="rb_option2">Radio Option 2</string>
+    <string name="rb_option3">Radio Option 3</string>
+    <string name="sw_toggle">Toggle Switch</string>
+    <string name="tv_result">Result: None</string>
+    <string name="btn_reset">Reset</string>
+
+    <!-- Gestures -->
+    <string name="gestures_title">Gestures Test</string>
+    <string name="area_click">Click Area\nClick Count: 0</string>
+    <string name="area_long_click">Long Click Area\nLong Press Me</string>
+    <string name="area_double_click">Double Click Area\nDouble Click Count: 0</string>
+    <string name="area_swipe">Swipe Area\nSwipe Direction: None</string>
+    <string name="area_drag">Drag Me!</string>
+    <string name="drag_handle_desc">Drag handle</string>
+
+    <!-- Input Forms -->
+    <string name="input_title">Input &amp; Forms Test</string>
+    <string name="hint_username">Username</string>
+    <string name="hint_password">Password</string>
+    <string name="hint_email">Email</string>
+    <string name="hint_comment">Comment (multiline)</string>
+    <string name="label_country">Select Country:</string>
+    <string name="btn_submit">Submit</string>
+    <string name="btn_clear">Clear</string>
+    <string name="tv_form_result">Form Result: Not submitted</string>
+
+    <!-- Lists -->
+    <string name="lists_title">Lists &amp; Scrolling Test</string>
+    <string name="tab_listview">ListView</string>
+    <string name="tab_recyclerview">RecyclerView</string>
+    <string name="tab_scrollview">ScrollView</string>
+    <string name="list_item">List Item %1$d</string>
+
+    <!-- Dialogs -->
+    <string name="dialogs_title">Dialogs &amp; Popups Test</string>
+    <string name="btn_alert">Show Alert Dialog</string>
+    <string name="btn_confirm">Show Confirm Dialog</string>
+    <string name="btn_custom">Show Custom Dialog</string>
+    <string name="btn_bottom_sheet">Show Bottom Sheet</string>
+    <string name="tv_dialog_result">Dialog Result: None</string>
+
+    <!-- Navigation -->
+    <string name="navigation_title">Navigation Test</string>
+    <string name="btn_next_page">Go to Next Page</string>
+    <string name="btn_back">Back</string>
+    <string name="tv_page_info">Page: %1$d</string>
+
+    <!-- Animations -->
+    <string name="animations_title">Animations Test</string>
+    <string name="btn_fade">Fade Animation</string>
+    <string name="btn_slide">Slide Animation</string>
+    <string name="btn_rotate">Rotate Animation</string>
+    <string name="btn_scale">Scale Animation</string>
+    <string name="btn_stop_all">Stop All</string>
+    <string name="tv_animation_status">Status: Idle</string>
+
+    <!-- Stress Test -->
+    <string name="stress_title">Stress Test</string>
+    <string name="btn_rapid_click">Rapid Click Test</string>
+    <string name="btn_memory_stress">Memory Stress</string>
+    <string name="btn_animation_stress">Animation Stress</string>
+    <string name="tv_click_count">Click Count: 0</string>
+    <string name="tv_memory_usage">Memory: 0 MB</string>
+    <string name="tv_animation_count">Animations: 0</string>
+
+    <!-- Concurrent Test -->
+    <string name="concurrent_title">Concurrent Test</string>
+    <string name="tv_counter1">Counter 1: 0</string>
+    <string name="tv_counter2">Counter 2: 0</string>
+    <string name="tv_counter3">Counter 3: 0</string>
+    <string name="btn_increment_all">Increment All</string>
+    <string name="btn_reset_all">Reset All</string>
+
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+</resources>

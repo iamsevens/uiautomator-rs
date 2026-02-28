@@ -1,0 +1,86 @@
+﻿[package]
+name = "uiautomator"
+version = "0.1.0"
+edition = "2021"
+description = "Rust Android UI automation library compatible with Python uiautomator2."
+license = "MIT"
+repository = "https://github.com/iamsevens/uiautomator-rs"
+homepage = "https://github.com/iamsevens/uiautomator-rs"
+documentation = "https://docs.rs/uiautomator"
+readme = "README.md"
+keywords = ["android", "automation", "uiautomator", "testing", "adb"]
+categories = ["development-tools::testing", "api-bindings"]
+include = [
+    "/src/**",
+    "/assets/u2.jar",
+    "/assets/atx-agent",
+    "/assets/atx-agent-386",
+    "/assets/atx-agent-amd64",
+    "/assets/atx-agent-arm64",
+    "/assets/atx-agent-armv7",
+    "/assets/app-uiautomator.apk",
+    "/assets/app-uiautomator-test.apk",
+    "/assets/download_atx_agent.sh",
+    "/assets/download_atx_agent.ps1",
+    "/assets/README.md",
+    "/Cargo.toml",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/THIRD_PARTY_NOTICES.md",
+    "/build.rs",
+    "/LICENSE*",
+]
+
+[features]
+default = []
+# ATX-Agent 瀹夎鍔熻兘锛堥渶瑕佷笅杞介澶栫殑璧勬簮鏂囦欢锛?
+atx-agent-install = []
+
+[dependencies]
+# 寮傛杩愯鏃?
+tokio = { version = "1", features = ["full"] }
+
+# HTTP 瀹㈡埛绔紙鐢ㄤ簬涓庤澶囩閫氫俊锛?
+reqwest = { version = "0.11", features = ["json"] }
+
+# JSON 搴忓垪鍖?
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# ADB 瀹㈡埛绔紙鐢ㄤ簬璁惧杩炴帴鍜岀鍙ｈ浆鍙戯級
+adb_client = "3.0"
+
+# XML 瑙ｆ瀽锛堢敤浜庤В鏋?UI 灞傜骇缁撴瀯锛?
+quick-xml = "0.31"
+
+# 鍥惧儚澶勭悊锛堢敤浜庢埅鍥撅級
+image = "0.24"
+base64 = "0.21"
+
+# 閿欒澶勭悊
+thiserror = "1.0"
+anyhow = "1.0"
+
+# 鏃ュ織
+log = "0.4"
+env_logger = "0.11"
+
+# 寮傛宸ュ叿
+futures = "0.3"
+
+# 姝ｅ垯琛ㄨ揪寮?
+regex = "1.10"
+
+# MD5 璁＄畻锛堢敤浜?JAR 鐗堟湰鏍￠獙锛?
+md5 = "0.7"
+
+[build-dependencies]
+# 鏋勫缓鏃惰绠?JAR 鐨?MD5
+md5 = "0.7"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.12"
+mockito = "1.2"
+proptest = "1.4"
+criterion = "0.5"

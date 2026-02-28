@@ -1,0 +1,224 @@
+﻿# Testing and Release Baseline
+
+[English](./TESTING_RELEASE.md) | [简体中文](./TESTING_RELEASE.zh-CN.md)
+
+## 1. Purpose
+
+Defines release-grade validation and evidence standards.
+
+Goals:
+
+1. Reproduce `clean environment -> rebuilt runtime -> full regression` deterministically.
+2. Distinguish real product failures from environment noise.
+3. Produce auditable release artifacts.
+
+## 2. Sources and Applicability
+
+Sources:
+
+- `.kiro/specs/uiautomator*/tasks.md`
+- `.kiro/specs/bugfix/tasks.md`
+- `scripts/device-full-test.ps1`
+- `scripts/api-coverage-report.ps1`
+- `scripts/release-check.ps1`, `scripts/release-check.sh`
+
+Applies to:
+
+- `uiautomator` release verification
+- `uiautomator-cli` release verification
+
+## 3. Test Layering
+
+- `unit`: pure logic/model/serialization/error mapping
+- `integration`: real device/emulator end-to-end
+- `ignored`: environment-heavy or slow suites
+
+### `non-ignored` vs `ignored`
+
+- `non-ignored`: default daily signal path
+- `ignored`: additional deep verification path
+
+Release validation should include both.
+
+## 4. Full Regression Script Contract
+
+### Standard Command
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1 -Serial <serial>
+```
+
+### Fixed Steps
+
+1. Validate target device availability (explicit serial only).
+2. Clean ATX/uiautomator runtime state and stale processes.
+3. Rebuild environment via `init -f`.
+4. Install/verify `test-app` (`com.uiautomator.testapp`).
+5. Run four suites:
+- `uiautomator-cli` non-ignored
+- `uiautomator-cli` ignored
+- `uiautomator` non-ignored
+- `uiautomator` ignored
+
+### Hard Constraints
+
+- Serial pinning is mandatory.
+- Hard timeout is mandatory.
+- Structured summary output is mandatory.
+
+## 5. Regression Matrix Template
+
+### Minimum Matrix (Recommended)
+
+- 1 real `arm64` device
+- 1 `x86_64` emulator
+
+### Expanded Matrix (Recommended)
+
+- At least 2 Android major versions
+- Multiple emulator vendors/types
+- Both initial states:
+- clean environment rebuild
+- preinstalled ATX runtime
+
+### Record Template
+
+| RunID | Device | Type | Arch | Android | Initial State | CLI non-ignored | CLI ignored | Lib non-ignored | Lib ignored | Final |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `<run-id>` | `<serial>` | `real/emulator` | `arm64/x86_64` | `<ver>` | `clean/preinstalled` | pass/fail | pass/fail | pass/fail | pass/fail | pass/fail |
+
+## 6. Artifact and Log Standards
+
+### Output Paths
+
+- Full regression: `internal/testlogs/full-device/<run-id>/`
+- API coverage: `internal/testlogs/api-coverage/<run-id>/`
+
+### Required Artifacts
+
+- Human logs: `*.log`, `*.err.log`
+- Machine-readable: `summary.json`, `summary.junit.xml`, `api-coverage.json`, `api-coverage.md`
+
+### Encoding Rule
+
+- UTF-8 end-to-end for console/process/log parsing.
+- Encoding anomalies are treated as environment faults and require rerun.
+
+## 7. Failure Taxonomy (Anti-Misread)
+
+### Codes
+
+- `E-ENV`: environment issues (offline device, adb failure, permission popup, port conflict)
+- `E-ATX`: ATX runtime issues (install/start/probe/version mismatch)
+- `E-APP`: test-app mismatch issues
+- `E-TEST`: test-case design/assertion/timeout issues
+- `E-LIB`: core library regressions
+- `E-CLI`: CLI flow/output regressions
+
+### Handling Rules
+
+1. `E-ENV` / `E-ATX`: fix environment first, then rerun.
+2. `E-APP` / `E-TEST`: fix test assets/cases and compare before/after.
+3. `E-LIB` / `E-CLI`: bugfix required; full rerun after fix.
+
+### Failure Record Template
+
+| Time | RunID | Device | Step | Code | Symptom | Root Cause | Action | Rerun |
+|---|---|---|---|---|---|---|---|---|
+| `<time>` | `<run-id>` | `<serial>` | `<step>` | `E-*` | `<symptom>` | `<cause>` | `<action>` | pass/fail |
+
+## 8. API Coverage Accounting
+
+### Command
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
+```
+
+### Expectations
+
+- Public API to test-case mapping generated
+- Uncovered APIs flagged explicitly
+- Coverage artifacts included in release evidence
+
+## 9. Release Gates
+
+### Hard Gates
+
+1. `release-check` passes.
+2. Clean rebuild + full regression passes on real device + emulator.
+3. `summary.json` and `summary.junit.xml` are present and valid.
+4. API coverage artifacts are generated and reviewed.
+5. `cargo publish --dry-run` passes for both crates.
+
+### Soft Gates
+
+1. Task 23 matrix expansion
+2. Task 24 post-install smoke path
+3. Task 25 nightly guardrail
+
+## 10. Release Execution Order
+
+### Commands (Windows)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1 -Serial <serial>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
+cargo publish --dry-run
+```
+
+### Commands (Linux/macOS)
+
+```bash
+bash scripts/release-check.sh
+# run pwsh device/coverage scripts or equivalent wrappers
+```
+
+### crates.io Order
+
+1. Publish `uiautomator`
+2. Wait for index visibility
+3. Publish `uiautomator-cli`
+
+## 11. Release Evidence Template
+
+```markdown
+## Release Evidence - <version>
+
+- Date: <YYYY-MM-DD>
+- Reviewer: <name>
+- Commit: <sha>
+
+### Device Matrix
+- <run-id-1>: <serial> / <arch> / pass
+- <run-id-2>: <serial> / <arch> / pass
+
+### Artifacts
+- summary.json: <path>
+- summary.junit.xml: <path>
+- api-coverage.json: <path>
+- api-coverage.md: <path>
+
+### Gate Check
+- release-check: pass/fail
+- full regression: pass/fail
+- coverage review: pass/fail
+- cargo publish --dry-run (uiautomator): pass/fail
+- cargo publish --dry-run (uiautomator-cli): pass/fail
+
+### Exceptions
+- <none / details>
+
+### Final Decision
+- Release: yes/no
+- Notes: <text>
+```
+
+## 12. Post-release Guardrails
+
+- Schedule nightly full regression.
+- Keep structured artifacts as CI artifacts.
+- Route failures using the `E-*` taxonomy.
+
+Related open tasks: see `TASKS.md` Task 23/24/25.

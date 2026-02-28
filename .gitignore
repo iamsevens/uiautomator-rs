@@ -1,0 +1,53 @@
+﻿# Python test files
+*.py
+*.pyc
+__pycache__/
+
+# Test output
+*.log
+nul
+window_dump*.xml
+
+# Documentation (temporary local test reports)
+TESTING_SUMMARY.md
+MANUAL_TEST_GUIDE.md
+FINAL_TEST_REPORT.md
+BUILD_CONFIG.md
+
+# AI tool configs
+.claude/
+.kiro/
+
+# Third-party reference code (not for distribution)
+reference/
+
+# Internal development docs (keep only docs/public in git)
+docs/*
+!docs/public/
+!docs/public/**
+
+# Local internal archive (task/completion/report markdown files)
+internal/
+
+# Task completion reports
+TASK_*.md
+**/TASK_*.md
+
+# Rust
+target/
+**/*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Gradle downloads
+test-app/gradle/*.zip

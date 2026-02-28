@@ -1,0 +1,84 @@
+[package]
+name = "uiautomator-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["uiautomator contributors"]
+description = "命令行工具，用于管理 Android 设备上的 ATX-Agent 服务"
+license = "MIT"
+repository = "https://github.com/iamsevens/uiautomator-rs"
+readme = "README.md"
+homepage = "https://github.com/iamsevens/uiautomator-rs"
+documentation = "https://docs.rs/uiautomator-cli"
+keywords = ["android", "automation", "uiautomator", "cli", "adb"]
+categories = ["command-line-utilities", "development-tools::testing"]
+include = [
+    "/src/**",
+    "/assets/atx-agent",
+    "/assets/app-uiautomator.apk",
+    "/assets/app-uiautomator-test.apk",
+    "/assets/download_atx_agent.sh",
+    "/assets/download_atx_agent.ps1",
+    "/assets/README.md",
+    "/assets/LICENSE",
+    "/install.sh",
+    "/install.ps1",
+    "/verify_setup.sh",
+    "/test-build.sh",
+    "/test-build.ps1",
+    "/Cargo.toml",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/THIRD_PARTY_NOTICES.md",
+    "/CONTRIBUTING.md",
+    "/FAQ.md",
+    "/RELEASE_GUIDE.md",
+    "/SETUP.md",
+    "/build.rs",
+    "/LICENSE*",
+]
+
+[lib]
+name = "uiautomator_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "uiautomator"
+path = "src/main.rs"
+
+[dependencies]
+# uiautomator 库（启用 atx-agent-install 功能）
+uiautomator = { version = "0.1.0", path = "../uiautomator", features = ["atx-agent-install"] }
+
+# CLI 参数解析
+clap = { version = "4.5", features = ["derive"] }
+
+# 异步运行时
+tokio = { version = "1", features = ["full"] }
+
+# 错误处理
+anyhow = "1.0"
+thiserror = "1.0"
+
+# 彩色输出
+colored = "2.1"
+
+# 日志
+log = "0.4"
+env_logger = "0.11"
+
+# MD5 校验（用于资源文件完整性验证）
+md5 = "0.7"
+
+[build-dependencies]
+# 构建时计算资源文件 MD5
+md5 = "0.7"
+
+[dev-dependencies]
+# 属性测试
+proptest = "1.4"
+
+# Mock 测试
+mockall = "0.12"
+
+# 测试工具
+tokio-test = "0.4"

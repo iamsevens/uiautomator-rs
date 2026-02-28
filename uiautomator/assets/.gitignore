@@ -1,0 +1,6 @@
+﻿# Keep required runtime assets tracked for reproducible builds.
+
+# Temporary download artifacts
+*.tar.gz
+*.zip
+*.tmp

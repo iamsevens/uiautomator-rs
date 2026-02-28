@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tv_gestures_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/gestures_title"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_click_area"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="@string/area_click"
+            android:gravity="center"
+            android:background="@color/blue"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/tv_long_click_area"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="@string/area_long_click"
+            android:gravity="center"
+            android:background="@color/orange"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:longClickable="true" />
+
+        <TextView
+            android:id="@+id/tv_double_click_area"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="@string/area_double_click"
+            android:gravity="center"
+            android:background="@color/green"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/tv_swipe_area"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="@string/area_swipe"
+            android:gravity="center"
+            android:background="@color/purple_500"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:background="@color/gray_light">
+
+            <View
+                android:id="@+id/view_drag"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:background="@color/red"
+                android:layout_gravity="center"
+                android:contentDescription="@string/drag_handle_desc"
+                android:clickable="true"
+                android:focusable="true"
+                android:importantForAccessibility="yes" />
+
+        </FrameLayout>
+
+    </LinearLayout>
+</ScrollView>

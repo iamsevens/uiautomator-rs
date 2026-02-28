@@ -1,0 +1,94 @@
+name: Build Test
+
+on:
+  workflow_dispatch:  # 允许手动触发
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'build.rs'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-test:
+    name: Test Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: uiautomator-linux-x86_64
+          
+          # macOS x86_64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: uiautomator-macos-x86_64
+          
+          # macOS aarch64 (Apple Silicon)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: uiautomator-macos-aarch64
+          
+          # Windows x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: uiautomator-windows-x86_64.exe
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      
+      - name: Download assets (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd uiautomator-cli
+          bash assets/download_atx_agent.sh
+        shell: bash
+      
+      - name: Download assets (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd uiautomator-cli
+          powershell -ExecutionPolicy Bypass -File assets/download_atx_agent.ps1
+        shell: pwsh
+      
+      - name: Build
+        run: |
+          cd uiautomator-cli
+          cargo build --release --target ${{ matrix.target }}
+      
+      - name: Verify binary exists (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd uiautomator-cli
+          ls -lh target/${{ matrix.target }}/release/uiautomator
+          file target/${{ matrix.target }}/release/uiautomator
+      
+      - name: Verify binary exists (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd uiautomator-cli
+          dir target\${{ matrix.target }}\release\uiautomator.exe
+      
+      - name: Test binary version (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd uiautomator-cli
+          target/${{ matrix.target }}/release/uiautomator version
+      
+      - name: Test binary version (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd uiautomator-cli
+          target\${{ matrix.target }}\release\uiautomator.exe version

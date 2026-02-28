@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/tv_main_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/main_title"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tv_main_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/main_subtitle"
+        android:textSize="16sp"
+        android:layout_marginBottom="32dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btn_basic_controls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_basic_controls"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_gestures"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_gestures"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_input_forms"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_input_forms"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_lists"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_lists"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_dialogs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_dialogs"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_navigation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_navigation"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_animations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_animations"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_stress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_stress"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_concurrent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/test_concurrent" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

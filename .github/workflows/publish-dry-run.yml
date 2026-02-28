@@ -1,0 +1,107 @@
+name: Publish Dry Run
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Prepare assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m pip install --upgrade pip
+          python -m pip install uiautomator2
+
+          python - <<'PY'
+          import os
+          import shutil
+          import uiautomator2
+
+          assets = os.path.join(os.path.dirname(uiautomator2.__file__), "assets")
+          shutil.copy2(os.path.join(assets, "u2.jar"), "uiautomator/assets/u2.jar")
+          PY
+
+          bash ./uiautomator/assets/download_atx_agent.sh
+          bash ./uiautomator-cli/assets/download_atx_agent.sh
+          cp -f ./uiautomator-cli/assets/app-uiautomator.apk ./uiautomator/assets/app-uiautomator.apk
+
+      - name: Run package release checks
+        shell: bash
+        run: bash ./scripts/release-check.sh
+
+      - name: Dry-run publish uiautomator
+        shell: bash
+        run: |
+          cd uiautomator
+          cargo publish --dry-run
+
+      - name: Check uiautomator package size budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          crate_file="$(ls -t uiautomator/target/package/uiautomator-*.crate | head -n1)"
+          if [ -z "${crate_file}" ]; then
+            echo "未找到 uiautomator .crate 文件"
+            exit 1
+          fi
+
+          python - "$crate_file" <<'PY'
+          import os
+          import sys
+
+          crate_path = sys.argv[1]
+          size_bytes = os.path.getsize(crate_path)
+          size_mib = size_bytes / (1024 * 1024)
+          max_mib = 9.95
+
+          print(f"crate: {crate_path}")
+          print(f"size: {size_mib:.3f} MiB (budget: {max_mib:.2f} MiB)")
+
+          if size_mib > max_mib:
+              raise SystemExit(
+                  f"uiautomator package size exceeds budget: {size_mib:.3f} MiB > {max_mib:.2f} MiB"
+              )
+          PY
+
+      - name: Check uiautomator on crates.io
+        id: uiautomator_crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_code="$(curl -sS -o /dev/null -w "%{http_code}" https://crates.io/api/v1/crates/uiautomator)"
+          if [ "$status_code" = "200" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "uiautomator 已存在于 crates.io，执行 CLI dry-run publish。"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "uiautomator 还未发布到 crates.io（HTTP $status_code），跳过 CLI dry-run publish。"
+          fi
+
+      - name: Dry-run publish uiautomator-cli
+        if: steps.uiautomator_crate.outputs.exists == 'true'
+        shell: bash
+        run: |
+          cd uiautomator-cli
+          cargo publish --dry-run
+
+      - name: Package list check uiautomator-cli (bootstrap mode)
+        if: steps.uiautomator_crate.outputs.exists != 'true'
+        shell: bash
+        run: |
+          cd uiautomator-cli
+          cargo package --list
