@@ -164,7 +164,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: device-regression-${{ matrix.name }}-${{ matrix.serial }}
+          name: device-regression-${{ matrix.name }}-${{ replace(matrix.serial, ':', '_') }}
           path: |
             ${{ env.MANIFEST_PATH }}
             ${{ env.RUN_SUMMARY_JSON }}

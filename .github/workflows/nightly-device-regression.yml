@@ -174,7 +174,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nightly-regression-${{ matrix.name }}-${{ matrix.serial }}
+          name: nightly-regression-${{ matrix.name }}-${{ replace(matrix.serial, ':', '_') }}
           path: |
             ${{ env.MANIFEST_PATH }}
             ${{ env.RUN_SUMMARY_JSON }}
