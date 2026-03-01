@@ -79,7 +79,7 @@ jobs:
             ${{ env.RUN_SUMMARY_JUNIT }}
             ${{ env.RUN_LOG_DIR }}
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 3
 
       - name: Enforce summary status
         if: always()
