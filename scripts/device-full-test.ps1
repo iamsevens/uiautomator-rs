@@ -2,11 +2,19 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Serial,
 
+    [string]$TargetName = "",
+
+    [string]$ExpectedAbi = "",
+
+    [int]$ExpectedAndroidMajor = 0,
+
     [int]$StepTimeoutMinutes = 45,
 
     [string]$LogRoot = "internal/testlogs/full-device",
 
     [string]$TestAppApk = "test-app/app/build/outputs/apk/debug/app-debug.apk",
+
+    [string]$OutputManifestPath = "",
 
     [switch]$SkipCleanup,
 
@@ -37,6 +45,12 @@ $debugDumpDir = Join-Path $runLogDir "debug-dumps"
 New-Item -ItemType Directory -Force -Path $runLogDir | Out-Null
 
 $summary = New-Object System.Collections.Generic.List[object]
+$deviceProfile = [ordered]@{
+    abi             = ""
+    android_release = ""
+    android_major   = 0
+    sdk_int         = ""
+}
 
 function Write-Step {
     param([string]$Message)
@@ -94,12 +108,14 @@ function Write-StructuredSummary {
     $jsonObject = [ordered]@{
         schema_version    = 1
         run_id            = "$runId-$safeSerialForPath"
+        target_name       = $TargetName
         serial            = $Serial
         status            = $RunStatus
         started_at        = $runStartedAt.ToString("o")
         finished_at       = $runFinishedAt.ToString("o")
         duration_seconds  = $durationSeconds
         log_dir           = $runLogDir
+        device_profile    = $deviceProfile
         failure_message   = $FailureMessage
         total_steps       = $stepsArray.Count
         failed_steps      = @($stepsArray | Where-Object { $_.Status -eq "failed" }).Count
@@ -151,6 +167,41 @@ function Write-StructuredSummary {
         JsonPath  = $jsonPath
         JunitPath = $junitPath
     }
+}
+
+function Write-RunManifest {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RunStatus,
+        [Parameter(Mandatory = $true)]
+        [object]$StructuredSummary,
+        [string]$FailureMessage = ""
+    )
+
+    if ([string]::IsNullOrWhiteSpace($OutputManifestPath)) {
+        return
+    }
+
+    $manifestDir = Split-Path -Parent $OutputManifestPath
+    if ($manifestDir) {
+        New-Item -ItemType Directory -Force -Path $manifestDir | Out-Null
+    }
+
+    $manifest = [ordered]@{
+        schema_version   = 1
+        run_id           = "$runId-$safeSerialForPath"
+        target_name      = $TargetName
+        serial           = $Serial
+        status           = $RunStatus
+        run_log_dir      = $runLogDir
+        summary_json     = $StructuredSummary.JsonPath
+        summary_junit    = $StructuredSummary.JunitPath
+        device_profile   = $deviceProfile
+        failure_message  = $FailureMessage
+        generated_at     = (Get-Date).ToString("o")
+    }
+
+    $manifest | ConvertTo-Json -Depth 8 | Set-Content -Path $OutputManifestPath -Encoding utf8
 }
 
 function Move-RootDebugXmlArtifacts {
@@ -395,6 +446,29 @@ try {
     }
     Add-Summary -Step "validate_device" -Status "ok" -Detail "state=device"
 
+    $abi = (Invoke-Adb -CmdArgs @("shell", "getprop", "ro.product.cpu.abi")).Output.Trim()
+    $androidRelease = (Invoke-Adb -CmdArgs @("shell", "getprop", "ro.build.version.release")).Output.Trim()
+    $sdkInt = (Invoke-Adb -CmdArgs @("shell", "getprop", "ro.build.version.sdk")).Output.Trim()
+    $androidMajor = 0
+    if ($androidRelease -match '^(?<major>\d+)') {
+        $androidMajor = [int]$matches.major
+    }
+
+    $deviceProfile.abi = $abi
+    $deviceProfile.android_release = $androidRelease
+    $deviceProfile.android_major = $androidMajor
+    $deviceProfile.sdk_int = $sdkInt
+
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedAbi) -and ($abi -ne $ExpectedAbi)) {
+        throw "target device '$Serial' abi mismatch: expected '$ExpectedAbi', actual '$abi'"
+    }
+
+    if ($ExpectedAndroidMajor -gt 0 -and ($androidMajor -ne $ExpectedAndroidMajor)) {
+        throw "target device '$Serial' Android major mismatch: expected '$ExpectedAndroidMajor', actual '$androidMajor' (release=$androidRelease)"
+    }
+
+    Add-Summary -Step "validate_device_profile" -Status "ok" -Detail "abi=$abi android=$androidRelease major=$androidMajor sdk=$sdkInt"
+
     if (-not $SkipCleanup) {
         Write-Step "Cleanup ATX/uiautomator state on target"
 
@@ -555,9 +629,13 @@ try {
 
     Write-Step "Completed"
     $structured = Write-StructuredSummary -RunStatus "passed"
+    Write-RunManifest -RunStatus "passed" -StructuredSummary $structured
     $summary | Select-Object Step, Status, Detail | Format-Table -Wrap -AutoSize | Out-String | Write-Host
     Write-Host "summary json: $($structured.JsonPath)"
     Write-Host "summary junit: $($structured.JunitPath)"
+    if (-not [string]::IsNullOrWhiteSpace($OutputManifestPath)) {
+        Write-Host "manifest: $OutputManifestPath"
+    }
     Write-Host "logs: $runLogDir"
 }
 catch {
@@ -575,11 +653,15 @@ catch {
 
     Add-Summary -Step "run" -Status "failed" -Detail $failureMessage
     $structured = Write-StructuredSummary -RunStatus "failed" -FailureMessage $failureMessage
+    Write-RunManifest -RunStatus "failed" -StructuredSummary $structured -FailureMessage $failureMessage
     Write-Host ""
     Write-Host "FAILED"
     $summary | Select-Object Step, Status, Detail | Format-Table -Wrap -AutoSize | Out-String | Write-Host
     Write-Host "summary json: $($structured.JsonPath)"
     Write-Host "summary junit: $($structured.JunitPath)"
+    if (-not [string]::IsNullOrWhiteSpace($OutputManifestPath)) {
+        Write-Host "manifest: $OutputManifestPath"
+    }
     Write-Host "logs: $runLogDir"
     throw
 }

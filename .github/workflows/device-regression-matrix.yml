@@ -1,0 +1,105 @@
+﻿name: Device Regression Matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets_json:
+        description: >-
+          JSON array of targets. Example:
+          [{"name":"arm64_real","serial":"R5CR200B2EN","expected_abi":"arm64-v8a","expected_android_major":14},{"name":"x86_64_emu","serial":"emulator-5554","expected_abi":"x86_64","expected_android_major":9}]
+        required: true
+        type: string
+      step_timeout_minutes:
+        description: Timeout (minutes) for each cargo test step inside device-full-test.ps1
+        required: false
+        default: "45"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: device-regression-matrix-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(inputs.targets_json) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run full-device regression for target
+        id: run_regression
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $manifestPath = Join-Path $env:RUNNER_TEMP ("device-full-manifest-{0}.json" -f '${{ matrix.target.name }}')
+          "MANIFEST_PATH=$manifestPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          $args = @(
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-File', '.\\scripts\\device-full-test.ps1',
+            '-Serial', '${{ matrix.target.serial }}',
+            '-TargetName', '${{ matrix.target.name }}',
+            '-StepTimeoutMinutes', '${{ inputs.step_timeout_minutes }}',
+            '-OutputManifestPath', $manifestPath
+          )
+
+          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.target.expected_abi }}')) {
+            $args += @('-ExpectedAbi', '${{ matrix.target.expected_abi }}')
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.target.expected_android_major }}')) {
+            $args += @('-ExpectedAndroidMajor', '${{ matrix.target.expected_android_major }}')
+          }
+
+          & powershell @args
+
+      - name: Parse structured summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path $env:MANIFEST_PATH)) {
+            throw "manifest not found: $env:MANIFEST_PATH"
+          }
+
+          $manifest = Get-Content $env:MANIFEST_PATH -Raw -Encoding utf8 | ConvertFrom-Json
+          "RUN_STATUS=$($manifest.status)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_LOG_DIR=$($manifest.run_log_dir)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_SUMMARY_JSON=$($manifest.summary_json)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_SUMMARY_JUNIT=$($manifest.summary_junit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          Write-Host "target=${{ matrix.target.name }} serial=${{ matrix.target.serial }} status=$($manifest.status)"
+          Write-Host "log_dir=$($manifest.run_log_dir)"
+
+      - name: Upload regression artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-regression-${{ matrix.target.name }}-${{ matrix.target.serial }}
+          path: |
+            ${{ env.MANIFEST_PATH }}
+            ${{ env.RUN_SUMMARY_JSON }}
+            ${{ env.RUN_SUMMARY_JUNIT }}
+            ${{ env.RUN_LOG_DIR }}
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enforce summary status
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:RUN_STATUS -ne 'passed') {
+            throw "device regression failed for target=${{ matrix.target.name }} serial=${{ matrix.target.serial }}"
+          }

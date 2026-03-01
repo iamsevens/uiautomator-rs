@@ -1,0 +1,90 @@
+﻿name: Install Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      serial:
+        description: Android device serial for smoke test
+        required: true
+        type: string
+      target_name:
+        description: Optional label for this target
+        required: false
+        default: install-smoke
+        type: string
+      step_timeout_minutes:
+        description: Timeout (minutes) for each smoke step
+        required: false
+        default: "20"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run post-install smoke
+        id: run_smoke
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $manifestPath = Join-Path $env:RUNNER_TEMP "install-smoke-manifest.json"
+          "MANIFEST_PATH=$manifestPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          & powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\post-install-smoke.ps1 `
+            -Serial '${{ inputs.serial }}' `
+            -TargetName '${{ inputs.target_name }}' `
+            -StepTimeoutMinutes '${{ inputs.step_timeout_minutes }}' `
+            -OutputManifestPath $manifestPath
+
+      - name: Parse structured summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path $env:MANIFEST_PATH)) {
+            throw "manifest not found: $env:MANIFEST_PATH"
+          }
+
+          $manifest = Get-Content $env:MANIFEST_PATH -Raw -Encoding utf8 | ConvertFrom-Json
+          "RUN_STATUS=$($manifest.status)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_LOG_DIR=$($manifest.run_log_dir)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_SUMMARY_JSON=$($manifest.summary_json)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_SUMMARY_JUNIT=$($manifest.summary_junit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          Write-Host "serial=${{ inputs.serial }} status=$($manifest.status)"
+          Write-Host "log_dir=$($manifest.run_log_dir)"
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-smoke-${{ inputs.serial }}
+          path: |
+            ${{ env.MANIFEST_PATH }}
+            ${{ env.RUN_SUMMARY_JSON }}
+            ${{ env.RUN_SUMMARY_JUNIT }}
+            ${{ env.RUN_LOG_DIR }}
+          if-no-files-found: warn
+          retention-days: 3
+
+      - name: Enforce summary status
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:RUN_STATUS -ne 'passed') {
+            throw "install smoke failed for serial=${{ inputs.serial }}"
+          }
