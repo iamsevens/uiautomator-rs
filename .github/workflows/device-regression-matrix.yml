@@ -97,6 +97,20 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Ensure target device online
+        shell: pwsh
+        env:
+          LDPLAYER_START_CMD: ${{ vars.LDPLAYER_START_CMD }}
+          MUMU_START_CMD: ${{ vars.MUMU_START_CMD }}
+          MUMU_ADB_ENDPOINTS: ${{ vars.MUMU_ADB_ENDPOINTS }}
+        run: |
+          & powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ensure-test-device.ps1 `
+            -Serial '${{ matrix.serial }}' `
+            -LdplayerStartCommand $env:LDPLAYER_START_CMD `
+            -MumuStartCommand $env:MUMU_START_CMD `
+            -MumuConnectEndpoints $env:MUMU_ADB_ENDPOINTS `
+            -WaitTimeoutSeconds 360
+
       - name: Run full-device regression for target
         id: run_regression
         continue-on-error: true
