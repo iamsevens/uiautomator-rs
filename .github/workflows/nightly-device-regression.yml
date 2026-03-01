@@ -53,25 +53,25 @@ jobs:
           fi
 
           python - <<'PY' "$targets_json"
-import json
-import sys
+          import json
+          import sys
 
-raw = sys.argv[1]
-try:
-    data = json.loads(raw)
-except Exception as exc:
-    raise SystemExit(f"invalid targets_json: {exc}")
+          raw = sys.argv[1]
+          try:
+              data = json.loads(raw)
+          except Exception as exc:
+              raise SystemExit(f"invalid targets_json: {exc}")
 
-if not isinstance(data, list) or len(data) == 0:
-    raise SystemExit("targets_json must be a non-empty JSON array")
+          if not isinstance(data, list) or len(data) == 0:
+              raise SystemExit("targets_json must be a non-empty JSON array")
 
-for idx, target in enumerate(data):
-    if not isinstance(target, dict):
-        raise SystemExit(f"target[{idx}] must be an object")
-    for key in ("name", "serial"):
-        if key not in target or not str(target[key]).strip():
-            raise SystemExit(f"target[{idx}] missing required key: {key}")
-PY
+          for idx, target in enumerate(data):
+              if not isinstance(target, dict):
+                  raise SystemExit(f"target[{idx}] must be an object")
+              for key in ("name", "serial"):
+                  if key not in target or not str(target[key]).strip():
+                      raise SystemExit(f"target[{idx}] missing required key: {key}")
+          PY
 
           step_timeout="${INPUT_STEP_TIMEOUT:-45}"
           if [ -z "$step_timeout" ]; then
@@ -79,13 +79,13 @@ PY
           fi
 
           matrix_json=$(python - <<'PY' "$targets_json"
-import json
-import sys
+          import json
+          import sys
 
-data = json.loads(sys.argv[1])
-print(json.dumps({"include": data}, separators=(",", ":")))
-PY
-)
+          data = json.loads(sys.argv[1])
+          print(json.dumps({"include": data}, separators=(",", ":")))
+          PY
+          )
 
           echo "targets_json=$targets_json" >> "$GITHUB_OUTPUT"
           echo "matrix_json=$matrix_json" >> "$GITHUB_OUTPUT"
