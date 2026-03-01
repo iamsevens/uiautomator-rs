@@ -29,7 +29,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJSON(inputs.targets_json) }}
+        # Use github.event.inputs here; inputs context in matrix can fail workflow compilation in dispatch runs.
+        target: ${{ fromJSON(github.event.inputs.targets_json) }}
 
     steps:
       - name: Checkout
