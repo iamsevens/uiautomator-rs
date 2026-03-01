@@ -29,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       targets_json: ${{ steps.resolve.outputs.targets_json }}
+      matrix_json: ${{ steps.resolve.outputs.matrix_json }}
       step_timeout_minutes: ${{ steps.resolve.outputs.step_timeout_minutes }}
     steps:
       - name: Resolve targets and validate JSON
@@ -77,7 +78,17 @@ PY
             step_timeout="45"
           fi
 
+          matrix_json=$(python - <<'PY' "$targets_json"
+import json
+import sys
+
+data = json.loads(sys.argv[1])
+print(json.dumps({"include": data}, separators=(",", ":")))
+PY
+)
+
           echo "targets_json=$targets_json" >> "$GITHUB_OUTPUT"
+          echo "matrix_json=$matrix_json" >> "$GITHUB_OUTPUT"
           echo "step_timeout_minutes=$step_timeout" >> "$GITHUB_OUTPUT"
 
   nightly-regression:
@@ -86,8 +97,7 @@ PY
     timeout-minutes: 360
     strategy:
       fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.prepare-targets.outputs.targets_json) }}
+      matrix: ${{ fromJSON(needs.prepare-targets.outputs.matrix_json) }}
 
     steps:
       - name: Checkout

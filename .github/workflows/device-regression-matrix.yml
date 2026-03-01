@@ -23,13 +23,72 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  prepare-targets:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_json: ${{ steps.resolve.outputs.matrix_json }}
+      step_timeout_minutes: ${{ steps.resolve.outputs.step_timeout_minutes }}
+    steps:
+      - name: Resolve targets and validate JSON
+        id: resolve
+        shell: bash
+        env:
+          INPUT_TARGETS_JSON: ${{ github.event.inputs.targets_json }}
+          INPUT_STEP_TIMEOUT: ${{ github.event.inputs.step_timeout_minutes }}
+        run: |
+          set -euo pipefail
+
+          targets_json="${INPUT_TARGETS_JSON:-}"
+          if [ -z "$targets_json" ]; then
+            echo "targets_json is required and must be a non-empty JSON array." >&2
+            exit 1
+          fi
+
+          python - <<'PY' "$targets_json"
+import json
+import sys
+
+raw = sys.argv[1]
+try:
+    data = json.loads(raw)
+except Exception as exc:
+    raise SystemExit(f"invalid targets_json: {exc}")
+
+if not isinstance(data, list) or len(data) == 0:
+    raise SystemExit("targets_json must be a non-empty JSON array")
+
+for idx, target in enumerate(data):
+    if not isinstance(target, dict):
+        raise SystemExit(f"target[{idx}] must be an object")
+    for key in ("name", "serial"):
+        if key not in target or not str(target[key]).strip():
+            raise SystemExit(f"target[{idx}] missing required key: {key}")
+PY
+
+          matrix_json=$(python - <<'PY' "$targets_json"
+import json
+import sys
+
+data = json.loads(sys.argv[1])
+print(json.dumps({"include": data}, separators=(",", ":")))
+PY
+)
+
+          step_timeout="${INPUT_STEP_TIMEOUT:-45}"
+          if [ -z "$step_timeout" ]; then
+            step_timeout="45"
+          fi
+
+          echo "matrix_json=$matrix_json" >> "$GITHUB_OUTPUT"
+          echo "step_timeout_minutes=$step_timeout" >> "$GITHUB_OUTPUT"
+
   regression:
+    needs: prepare-targets
     runs-on: [self-hosted, windows]
     timeout-minutes: 360
     strategy:
       fail-fast: false
-      matrix:
-        include: ${{ fromJSON(github.event.inputs.targets_json) }}
+      matrix: ${{ fromJSON(needs.prepare-targets.outputs.matrix_json) }}
 
     steps:
       - name: Checkout
@@ -52,7 +111,7 @@ jobs:
             '-File', '.\\scripts\\device-full-test.ps1',
             '-Serial', '${{ matrix.serial }}',
             '-TargetName', '${{ matrix.name }}',
-            '-StepTimeoutMinutes', '${{ inputs.step_timeout_minutes }}',
+            '-StepTimeoutMinutes', '${{ needs.prepare-targets.outputs.step_timeout_minutes }}',
             '-OutputManifestPath', $manifestPath
           )
 
