@@ -81,6 +81,8 @@ jobs:
           "RUN_LOG_DIR=$($manifest.run_log_dir)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "RUN_SUMMARY_JSON=$($manifest.summary_json)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "RUN_SUMMARY_JUNIT=$($manifest.summary_junit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $safeSerial = '${{ inputs.serial }}' -replace '[:\\\/<>"\|\*\?]', '_'
+          "SAFE_SERIAL=$safeSerial" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
           Write-Host "serial=${{ inputs.serial }} status=$($manifest.status)"
           Write-Host "log_dir=$($manifest.run_log_dir)"
@@ -89,7 +91,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: install-smoke-${{ replace(inputs.serial, ':', '_') }}
+          name: install-smoke-${{ env.SAFE_SERIAL }}
           path: |
             ${{ env.MANIFEST_PATH }}
             ${{ env.RUN_SUMMARY_JSON }}
