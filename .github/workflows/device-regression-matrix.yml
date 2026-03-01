@@ -94,11 +94,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Check Rust toolchain
+        shell: powershell
+        run: |
+          rustc --version
+          cargo --version
 
       - name: Ensure target device online
-        shell: pwsh
+        shell: powershell
         env:
           LDPLAYER_START_CMD: ${{ vars.LDPLAYER_START_CMD }}
           MUMU_START_CMD: ${{ vars.MUMU_START_CMD }}
@@ -114,7 +117,7 @@ jobs:
       - name: Run full-device regression for target
         id: run_regression
         continue-on-error: true
-        shell: pwsh
+        shell: powershell
         run: |
           $manifestPath = Join-Path $env:RUNNER_TEMP ("device-full-manifest-{0}.json" -f '${{ matrix.name }}')
           "MANIFEST_PATH=$manifestPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -141,7 +144,7 @@ jobs:
 
       - name: Parse structured summary
         if: always()
-        shell: pwsh
+        shell: powershell
         run: |
           if (-not (Test-Path $env:MANIFEST_PATH)) {
             throw "manifest not found: $env:MANIFEST_PATH"
@@ -171,7 +174,7 @@ jobs:
 
       - name: Enforce summary status
         if: always()
-        shell: pwsh
+        shell: powershell
         run: |
           if ($env:RUN_STATUS -ne 'passed') {
             throw "device regression failed for target=${{ matrix.name }} serial=${{ matrix.serial }}"
