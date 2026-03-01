@@ -29,8 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use github.event.inputs here; inputs context in matrix can fail workflow compilation in dispatch runs.
-        target: ${{ fromJSON(github.event.inputs.targets_json) }}
+        include: ${{ fromJSON(github.event.inputs.targets_json) }}
 
     steps:
       - name: Checkout
@@ -44,25 +43,25 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          $manifestPath = Join-Path $env:RUNNER_TEMP ("device-full-manifest-{0}.json" -f '${{ matrix.target.name }}')
+          $manifestPath = Join-Path $env:RUNNER_TEMP ("device-full-manifest-{0}.json" -f '${{ matrix.name }}')
           "MANIFEST_PATH=$manifestPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
           $args = @(
             '-NoProfile',
             '-ExecutionPolicy', 'Bypass',
             '-File', '.\\scripts\\device-full-test.ps1',
-            '-Serial', '${{ matrix.target.serial }}',
-            '-TargetName', '${{ matrix.target.name }}',
+            '-Serial', '${{ matrix.serial }}',
+            '-TargetName', '${{ matrix.name }}',
             '-StepTimeoutMinutes', '${{ inputs.step_timeout_minutes }}',
             '-OutputManifestPath', $manifestPath
           )
 
-          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.target.expected_abi }}')) {
-            $args += @('-ExpectedAbi', '${{ matrix.target.expected_abi }}')
+          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.expected_abi }}')) {
+            $args += @('-ExpectedAbi', '${{ matrix.expected_abi }}')
           }
 
-          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.target.expected_android_major }}')) {
-            $args += @('-ExpectedAndroidMajor', '${{ matrix.target.expected_android_major }}')
+          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.expected_android_major }}')) {
+            $args += @('-ExpectedAndroidMajor', '${{ matrix.expected_android_major }}')
           }
 
           & powershell @args
@@ -81,14 +80,14 @@ jobs:
           "RUN_SUMMARY_JSON=$($manifest.summary_json)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "RUN_SUMMARY_JUNIT=$($manifest.summary_junit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          Write-Host "target=${{ matrix.target.name }} serial=${{ matrix.target.serial }} status=$($manifest.status)"
+          Write-Host "target=${{ matrix.name }} serial=${{ matrix.serial }} status=$($manifest.status)"
           Write-Host "log_dir=$($manifest.run_log_dir)"
 
       - name: Upload regression artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: device-regression-${{ matrix.target.name }}-${{ matrix.target.serial }}
+          name: device-regression-${{ matrix.name }}-${{ matrix.serial }}
           path: |
             ${{ env.MANIFEST_PATH }}
             ${{ env.RUN_SUMMARY_JSON }}
@@ -98,9 +97,9 @@ jobs:
           retention-days: 7
 
       - name: Enforce summary status
-        if: always()
-        shell: pwsh
-        run: |
-          if ($env:RUN_STATUS -ne 'passed') {
-            throw "device regression failed for target=${{ matrix.target.name }} serial=${{ matrix.target.serial }}"
-          }
+          if: always()
+          shell: pwsh
+          run: |
+            if ($env:RUN_STATUS -ne 'passed') {
+              throw "device regression failed for target=${{ matrix.name }} serial=${{ matrix.serial }}"
+            }

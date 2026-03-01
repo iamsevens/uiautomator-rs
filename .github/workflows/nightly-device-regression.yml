@@ -87,7 +87,7 @@ PY
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJSON(needs.prepare-targets.outputs.targets_json) }}
+        include: ${{ fromJSON(needs.prepare-targets.outputs.targets_json) }}
 
     steps:
       - name: Checkout
@@ -101,25 +101,25 @@ PY
         continue-on-error: true
         shell: pwsh
         run: |
-          $manifestPath = Join-Path $env:RUNNER_TEMP ("nightly-device-full-manifest-{0}.json" -f '${{ matrix.target.name }}')
+          $manifestPath = Join-Path $env:RUNNER_TEMP ("nightly-device-full-manifest-{0}.json" -f '${{ matrix.name }}')
           "MANIFEST_PATH=$manifestPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
           $args = @(
             '-NoProfile',
             '-ExecutionPolicy', 'Bypass',
             '-File', '.\\scripts\\device-full-test.ps1',
-            '-Serial', '${{ matrix.target.serial }}',
-            '-TargetName', '${{ matrix.target.name }}',
+            '-Serial', '${{ matrix.serial }}',
+            '-TargetName', '${{ matrix.name }}',
             '-StepTimeoutMinutes', '${{ needs.prepare-targets.outputs.step_timeout_minutes }}',
             '-OutputManifestPath', $manifestPath
           )
 
-          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.target.expected_abi }}')) {
-            $args += @('-ExpectedAbi', '${{ matrix.target.expected_abi }}')
+          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.expected_abi }}')) {
+            $args += @('-ExpectedAbi', '${{ matrix.expected_abi }}')
           }
 
-          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.target.expected_android_major }}')) {
-            $args += @('-ExpectedAndroidMajor', '${{ matrix.target.expected_android_major }}')
+          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.expected_android_major }}')) {
+            $args += @('-ExpectedAndroidMajor', '${{ matrix.expected_android_major }}')
           }
 
           & powershell @args
@@ -138,14 +138,14 @@ PY
           "RUN_SUMMARY_JSON=$($manifest.summary_json)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "RUN_SUMMARY_JUNIT=$($manifest.summary_junit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          Write-Host "target=${{ matrix.target.name }} serial=${{ matrix.target.serial }} status=$($manifest.status)"
+          Write-Host "target=${{ matrix.name }} serial=${{ matrix.serial }} status=$($manifest.status)"
           Write-Host "log_dir=$($manifest.run_log_dir)"
 
       - name: Upload nightly artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nightly-regression-${{ matrix.target.name }}-${{ matrix.target.serial }}
+          name: nightly-regression-${{ matrix.name }}-${{ matrix.serial }}
           path: |
             ${{ env.MANIFEST_PATH }}
             ${{ env.RUN_SUMMARY_JSON }}
@@ -155,10 +155,10 @@ PY
           retention-days: 7
 
       - name: Enforce summary status
-        if: always()
-        shell: pwsh
-        run: |
-          if ($env:RUN_STATUS -ne 'passed') {
-            Write-Error "nightly regression failed for target=${{ matrix.target.name }} serial=${{ matrix.target.serial }}"
-            throw "nightly regression summary status is not passed"
-          }
+          if: always()
+          shell: pwsh
+          run: |
+            if ($env:RUN_STATUS -ne 'passed') {
+              Write-Error "nightly regression failed for target=${{ matrix.name }} serial=${{ matrix.serial }}"
+              throw "nightly regression summary status is not passed"
+            }
