@@ -97,9 +97,9 @@ jobs:
           retention-days: 7
 
       - name: Enforce summary status
-          if: always()
-          shell: pwsh
-          run: |
-            if ($env:RUN_STATUS -ne 'passed') {
-              throw "device regression failed for target=${{ matrix.name }} serial=${{ matrix.serial }}"
-            }
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:RUN_STATUS -ne 'passed') {
+            throw "device regression failed for target=${{ matrix.name }} serial=${{ matrix.serial }}"
+          }
