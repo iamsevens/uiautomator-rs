@@ -1,0 +1,164 @@
+﻿name: Nightly Device Regression
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets_json:
+        description: >-
+          Optional JSON array of targets. If empty, use repository variable NIGHTLY_TARGETS_JSON.
+        required: false
+        default: ""
+        type: string
+      step_timeout_minutes:
+        description: Timeout (minutes) for each cargo test step inside device-full-test.ps1
+        required: false
+        default: "45"
+        type: string
+  schedule:
+    - cron: "0 18 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-device-regression
+  cancel-in-progress: false
+
+jobs:
+  prepare-targets:
+    runs-on: ubuntu-latest
+    outputs:
+      targets_json: ${{ steps.resolve.outputs.targets_json }}
+      step_timeout_minutes: ${{ steps.resolve.outputs.step_timeout_minutes }}
+    steps:
+      - name: Resolve targets and validate JSON
+        id: resolve
+        shell: bash
+        env:
+          INPUT_TARGETS_JSON: ${{ github.event.inputs.targets_json }}
+          VAR_TARGETS_JSON: ${{ vars.NIGHTLY_TARGETS_JSON }}
+          INPUT_STEP_TIMEOUT: ${{ github.event.inputs.step_timeout_minutes }}
+        run: |
+          set -euo pipefail
+
+          targets_json="${INPUT_TARGETS_JSON:-}"
+          if [ -z "$targets_json" ]; then
+            targets_json="${VAR_TARGETS_JSON:-}"
+          fi
+
+          if [ -z "$targets_json" ]; then
+            echo "NIGHTLY_TARGETS_JSON is empty. Configure repository variable or pass workflow input." >&2
+            exit 1
+          fi
+
+          python - <<'PY' "$targets_json"
+import json
+import sys
+
+raw = sys.argv[1]
+try:
+    data = json.loads(raw)
+except Exception as exc:
+    raise SystemExit(f"invalid targets_json: {exc}")
+
+if not isinstance(data, list) or len(data) == 0:
+    raise SystemExit("targets_json must be a non-empty JSON array")
+
+for idx, target in enumerate(data):
+    if not isinstance(target, dict):
+        raise SystemExit(f"target[{idx}] must be an object")
+    for key in ("name", "serial"):
+        if key not in target or not str(target[key]).strip():
+            raise SystemExit(f"target[{idx}] missing required key: {key}")
+PY
+
+          step_timeout="${INPUT_STEP_TIMEOUT:-45}"
+          if [ -z "$step_timeout" ]; then
+            step_timeout="45"
+          fi
+
+          echo "targets_json=$targets_json" >> "$GITHUB_OUTPUT"
+          echo "step_timeout_minutes=$step_timeout" >> "$GITHUB_OUTPUT"
+
+  nightly-regression:
+    needs: prepare-targets
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.prepare-targets.outputs.targets_json) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run nightly full-device regression
+        id: run_nightly
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $manifestPath = Join-Path $env:RUNNER_TEMP ("nightly-device-full-manifest-{0}.json" -f '${{ matrix.target.name }}')
+          "MANIFEST_PATH=$manifestPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          $args = @(
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-File', '.\\scripts\\device-full-test.ps1',
+            '-Serial', '${{ matrix.target.serial }}',
+            '-TargetName', '${{ matrix.target.name }}',
+            '-StepTimeoutMinutes', '${{ needs.prepare-targets.outputs.step_timeout_minutes }}',
+            '-OutputManifestPath', $manifestPath
+          )
+
+          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.target.expected_abi }}')) {
+            $args += @('-ExpectedAbi', '${{ matrix.target.expected_abi }}')
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace('${{ matrix.target.expected_android_major }}')) {
+            $args += @('-ExpectedAndroidMajor', '${{ matrix.target.expected_android_major }}')
+          }
+
+          & powershell @args
+
+      - name: Parse structured summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path $env:MANIFEST_PATH)) {
+            throw "manifest not found: $env:MANIFEST_PATH"
+          }
+
+          $manifest = Get-Content $env:MANIFEST_PATH -Raw -Encoding utf8 | ConvertFrom-Json
+          "RUN_STATUS=$($manifest.status)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_LOG_DIR=$($manifest.run_log_dir)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_SUMMARY_JSON=$($manifest.summary_json)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "RUN_SUMMARY_JUNIT=$($manifest.summary_junit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          Write-Host "target=${{ matrix.target.name }} serial=${{ matrix.target.serial }} status=$($manifest.status)"
+          Write-Host "log_dir=$($manifest.run_log_dir)"
+
+      - name: Upload nightly artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-regression-${{ matrix.target.name }}-${{ matrix.target.serial }}
+          path: |
+            ${{ env.MANIFEST_PATH }}
+            ${{ env.RUN_SUMMARY_JSON }}
+            ${{ env.RUN_SUMMARY_JUNIT }}
+            ${{ env.RUN_LOG_DIR }}
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce summary status
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:RUN_STATUS -ne 'passed') {
+            Write-Error "nightly regression failed for target=${{ matrix.target.name }} serial=${{ matrix.target.serial }}"
+            throw "nightly regression summary status is not passed"
+          }
