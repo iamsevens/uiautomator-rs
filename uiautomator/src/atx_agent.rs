@@ -1054,13 +1054,17 @@ impl AtxAgentClient {
     ///
     /// # 参数
     ///
-    /// * `timeout` - 超时时间，`None` 表示使用默认值（30 秒）
+    /// * `timeout` - 超时时间，支持 `Duration` 或 `Option<Duration>`。
+    ///   传入 `None` 时使用默认值（30 秒）
     ///
     /// # 错误
     ///
     /// 如果超时仍未就绪，返回错误
-    pub async fn wait_for_atx_agent_ready(&self, timeout: Option<Duration>) -> Result<()> {
-        let timeout = timeout.unwrap_or(Duration::from_secs(30));
+    pub async fn wait_for_atx_agent_ready<T>(&self, timeout: T) -> Result<()>
+    where
+        T: Into<Option<Duration>>,
+    {
+        let timeout = timeout.into().unwrap_or(Duration::from_secs(30));
         info!("等待 atx-agent 服务就绪");
 
         let start = std::time::Instant::now();

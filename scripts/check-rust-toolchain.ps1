@@ -30,6 +30,53 @@ function Add-PathEntry {
     return $true
 }
 
+function Convert-HttpContentToText {
+    param([Parameter(Mandatory = $true)]$Content)
+
+    if ($Content -is [byte[]]) {
+        return [System.Text.Encoding]::UTF8.GetString($Content)
+    }
+
+    return [string]$Content
+}
+
+function Get-ExpectedSha256FromUrl {
+    param([Parameter(Mandatory = $true)][string]$Sha256Url)
+
+    $response = Invoke-WebRequest -Uri $Sha256Url -UseBasicParsing
+    $text = Convert-HttpContentToText -Content $response.Content
+    $line = ($text -split "`r?`n" |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -First 1)
+
+    if ([string]::IsNullOrWhiteSpace($line)) {
+        throw "checksum response is empty: $Sha256Url"
+    }
+
+    $sha = ($line -split '\s+')[0].Trim().ToLowerInvariant()
+    if ($sha -notmatch '^[0-9a-f]{64}$') {
+        throw "invalid sha256 format from $Sha256Url : $line"
+    }
+
+    return $sha
+}
+
+function Assert-FileSha256 {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedSha256,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+
+    $actual = (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $ExpectedSha256.ToLowerInvariant()) {
+        throw "$Label checksum mismatch. expected=$ExpectedSha256 actual=$actual file=$FilePath"
+    }
+
+    Write-Host "$Label checksum verified: $actual"
+}
+
 function Resolve-RustToolchain {
     $rustc = Get-Command rustc -ErrorAction SilentlyContinue
     $cargo = Get-Command cargo -ErrorAction SilentlyContinue
@@ -102,6 +149,8 @@ function Install-RustToolchain {
     $rustupHome = Join-Path $baseDir "rustup"
     $cargoBin = Join-Path $cargoHome "bin"
     $rustupInit = Join-Path $baseDir "rustup-init.exe"
+    $rustupUrl = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
+    $rustupSha256Url = "$rustupUrl.sha256"
 
     New-Item -ItemType Directory -Path $baseDir -Force | Out-Null
     New-Item -ItemType Directory -Path $cargoHome -Force | Out-Null
@@ -116,8 +165,23 @@ function Install-RustToolchain {
     }
 
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    if (-not (Test-Path $rustupInit)) {
-        Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile $rustupInit -UseBasicParsing
+    $expectedSha256 = Get-ExpectedSha256FromUrl -Sha256Url $rustupSha256Url
+    $needsDownload = -not (Test-Path $rustupInit)
+
+    if (-not $needsDownload) {
+        try {
+            Assert-FileSha256 -FilePath $rustupInit -ExpectedSha256 $expectedSha256 -Label "cached rustup-init.exe"
+        }
+        catch {
+            Write-Host "cached rustup-init.exe failed checksum validation, redownloading."
+            Remove-Item -Path $rustupInit -Force -ErrorAction SilentlyContinue
+            $needsDownload = $true
+        }
+    }
+
+    if ($needsDownload) {
+        Invoke-WebRequest -Uri $rustupUrl -OutFile $rustupInit -UseBasicParsing
+        Assert-FileSha256 -FilePath $rustupInit -ExpectedSha256 $expectedSha256 -Label "downloaded rustup-init.exe"
     }
 
     & $rustupInit -y --default-toolchain stable --profile minimal --no-modify-path

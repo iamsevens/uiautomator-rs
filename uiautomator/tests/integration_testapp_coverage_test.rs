@@ -422,12 +422,15 @@ async fn test_dialog_flows_and_wait_gone() {
     );
 
     let bottom_sheet = device.find(Selector::new().resource_id(app_id("btn_bottom_sheet")));
-    bottom_sheet.click(None, None).await.unwrap();
     let mut confirmed = false;
     let mut last_result_text = String::new();
     for attempt in 1..=3 {
+        bottom_sheet.click(None, None).await.unwrap();
         let option2 = device.find(Selector::new().resource_id(app_id("btn_sheet_option2")));
-        option2.wait(Some(Duration::from_secs(5))).await.unwrap();
+        if let Err(err) = option2.wait(Some(Duration::from_secs(5))).await {
+            eprintln!("warn: bottom sheet option2 not visible (attempt {attempt}/3): {err:?}");
+            continue;
+        }
         common::wait_ui_stable().await;
         option2.click(None, None).await.unwrap();
 

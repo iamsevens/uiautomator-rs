@@ -4,11 +4,69 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
+function Convert-HttpContentToText {
+    param([Parameter(Mandatory = $true)]$Content)
+
+    if ($Content -is [byte[]]) {
+        return [System.Text.Encoding]::UTF8.GetString($Content)
+    }
+
+    return [string]$Content
+}
+
+function Resolve-ExpectedSha256 {
+    param(
+        [string]$ConfiguredSha256,
+        [string]$ChecksumUrl
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ConfiguredSha256)) {
+        $normalized = $ConfiguredSha256.Trim().ToLowerInvariant()
+        if ($normalized -notmatch '^[0-9a-f]{64}$') {
+            throw "invalid configured SHA256: $ConfiguredSha256"
+        }
+        return $normalized
+    }
+
+    $response = Invoke-WebRequest -Uri $ChecksumUrl -UseBasicParsing
+    $text = Convert-HttpContentToText -Content $response.Content
+    $line = ($text -split "`r?`n" |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -First 1)
+
+    if ([string]::IsNullOrWhiteSpace($line)) {
+        throw "checksum response is empty: $ChecksumUrl"
+    }
+
+    $sha = ($line -split '\s+')[0].Trim().ToLowerInvariant()
+    if ($sha -notmatch '^[0-9a-f]{64}$') {
+        throw "invalid checksum format from $ChecksumUrl : $line"
+    }
+    return $sha
+}
+
+function Assert-FileSha256 {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedSha256,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+
+    $actual = (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $ExpectedSha256.ToLowerInvariant()) {
+        throw "$Label checksum mismatch. expected=$ExpectedSha256 actual=$actual file=$FilePath"
+    }
+
+    Write-Host "$Label checksum verified: $actual"
+}
+
 function Get-GradleDistributionInfo {
     param([Parameter(Mandatory = $true)][string]$WrapperPropertiesPath)
 
     $wrapperDir = Split-Path -Parent $WrapperPropertiesPath
     $distributionUrl = ""
+    $distributionSha256 = ""
 
     foreach ($line in (Get-Content $WrapperPropertiesPath -Encoding utf8)) {
         $trimmed = $line.Trim()
@@ -17,7 +75,10 @@ function Get-GradleDistributionInfo {
         }
         if ($trimmed -like "distributionUrl=*") {
             $distributionUrl = $trimmed.Substring("distributionUrl=".Length)
-            break
+            continue
+        }
+        if ($trimmed -like "distributionSha256Sum=*") {
+            $distributionSha256 = $trimmed.Substring("distributionSha256Sum=".Length)
         }
     }
 
@@ -40,6 +101,7 @@ function Get-GradleDistributionInfo {
     return [PSCustomObject]@{
         DistributionPath = $distributionPath
         ZipName          = $zipName
+        Sha256           = $distributionSha256
     }
 }
 
@@ -81,16 +143,31 @@ function Ensure-GradleDistributionZip {
     $cachedZip = Join-Path $cacheRoot "gradle\$($info.ZipName)"
     New-Item -ItemType Directory -Path (Split-Path -Parent $cachedZip) -Force | Out-Null
 
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $checksumUrl = "$downloadUrl.sha256"
+    $expectedSha256 = Resolve-ExpectedSha256 -ConfiguredSha256 $info.Sha256 -ChecksumUrl $checksumUrl
+
     if (-not (Test-Path $cachedZip)) {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Write-Host "downloading gradle distribution: $downloadUrl"
         Invoke-WebRequest -Uri $downloadUrl -OutFile $cachedZip -UseBasicParsing
+        Assert-FileSha256 -FilePath $cachedZip -ExpectedSha256 $expectedSha256 -Label "downloaded gradle zip"
     }
     else {
         Write-Host "using cached gradle distribution: $cachedZip"
+        try {
+            Assert-FileSha256 -FilePath $cachedZip -ExpectedSha256 $expectedSha256 -Label "cached gradle zip"
+        }
+        catch {
+            Write-Host "cached gradle zip failed checksum validation, redownloading."
+            Remove-Item -Path $cachedZip -Force -ErrorAction SilentlyContinue
+            Write-Host "downloading gradle distribution: $downloadUrl"
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $cachedZip -UseBasicParsing
+            Assert-FileSha256 -FilePath $cachedZip -ExpectedSha256 $expectedSha256 -Label "downloaded gradle zip"
+        }
     }
 
     Copy-Item -Path $cachedZip -Destination $info.DistributionPath -Force
+    Assert-FileSha256 -FilePath $info.DistributionPath -ExpectedSha256 $expectedSha256 -Label "prepared gradle zip"
 
     if (-not (Test-Path $info.DistributionPath)) {
         throw "failed to prepare gradle distribution zip: $($info.DistributionPath)"

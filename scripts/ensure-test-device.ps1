@@ -17,6 +17,9 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $defaultMumuEndpoints = "127.0.0.1:16384,127.0.0.1:5555"
+$isTcpSerial = $Serial -match '^\d{1,3}(\.\d{1,3}){3}:\d+$'
+$isEmulatorSerial = $Serial -like "emulator-*"
+$shouldHandleEmulator = $isTcpSerial -or $isEmulatorSerial
 
 if ([string]::IsNullOrWhiteSpace($LdplayerStartCommand) -and -not [string]::IsNullOrWhiteSpace($env:LDPLAYER_START_CMD)) {
     $LdplayerStartCommand = $env:LDPLAYER_START_CMD
@@ -30,8 +33,11 @@ if ([string]::IsNullOrWhiteSpace($MumuConnectEndpoints)) {
     if (-not [string]::IsNullOrWhiteSpace($env:MUMU_ADB_ENDPOINTS)) {
         $MumuConnectEndpoints = $env:MUMU_ADB_ENDPOINTS
     }
-    else {
+    elseif ($isTcpSerial) {
         $MumuConnectEndpoints = $defaultMumuEndpoints
+    }
+    else {
+        $MumuConnectEndpoints = ""
     }
 }
 
@@ -143,12 +149,17 @@ Write-Step "Ensure adb server is running"
 $null = Invoke-AdbRaw -CmdArgs @("start-server")
 
 Write-Step "Optionally start emulators"
-Start-LauncherCommand -Name "LDPlayer" -Command $LdplayerStartCommand
-Start-LauncherCommand -Name "MuMu" -Command $MumuStartCommand
+if ($shouldHandleEmulator) {
+    Start-LauncherCommand -Name "LDPlayer" -Command $LdplayerStartCommand
+    Start-LauncherCommand -Name "MuMu" -Command $MumuStartCommand
+}
+else {
+    Write-Host "target serial is not emulator/tcp. skip emulator auto-start."
+}
 
 Write-Step "Try initial adb connect"
 Connect-Endpoints -EndpointsCsv $MumuConnectEndpoints
-if ($Serial -match '^\d{1,3}(\.\d{1,3}){3}:\d+$') {
+if ($isTcpSerial) {
     $null = Invoke-AdbRaw -CmdArgs @("connect", $Serial) -AllowFailure
 }
 
@@ -163,7 +174,7 @@ while ((Get-Date) -lt $deadline) {
     # Reconnect periodically for tcp endpoints.
     if (($attempt -eq 1) -or ($attempt % [Math]::Max([int](30 / $PollIntervalSeconds), 1) -eq 0)) {
         Connect-Endpoints -EndpointsCsv $MumuConnectEndpoints
-        if ($Serial -match '^\d{1,3}(\.\d{1,3}){3}:\d+$') {
+        if ($isTcpSerial) {
             $null = Invoke-AdbRaw -CmdArgs @("connect", $Serial) -AllowFailure
         }
     }

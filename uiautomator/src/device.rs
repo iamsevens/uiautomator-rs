@@ -1351,12 +1351,9 @@ impl Device {
         let lower = reason.to_lowercase();
         let app_not_installed_markers = [
             "unknown package",
-            "activity class",
-            "does not exist",
-            "unable to resolve intent",
-            "unable to find explicit activity class",
-            "no activity found",
-            "no activities found to run",
+            "package not found",
+            "package was not found",
+            "is not installed for",
         ];
 
         if app_not_installed_markers
@@ -1735,7 +1732,8 @@ impl Device {
     /// # 参数
     ///
     /// * `package` - 应用包名
-    /// * `timeout` - 超时时间，`None` 表示使用全局等待超时（`Device::get_wait_timeout()`）
+    /// * `timeout` - 超时时间，支持 `Duration` 或 `Option<Duration>`。
+    ///   传入 `None` 时使用全局等待超时（`Device::get_wait_timeout()`）
     ///
     /// # 返回
     ///
@@ -1768,8 +1766,11 @@ impl Device {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn app_wait(&self, package: &str, timeout: Option<Duration>) -> Result<u32> {
-        let timeout = timeout.unwrap_or_else(|| self.get_wait_timeout());
+    pub async fn app_wait<T>(&self, package: &str, timeout: T) -> Result<u32>
+    where
+        T: Into<Option<Duration>>,
+    {
+        let timeout = timeout.into().unwrap_or_else(|| self.get_wait_timeout());
         debug!("等待应用启动: {}, 超时: {:?}", package, timeout);
 
         let start = std::time::Instant::now();
@@ -2012,9 +2013,18 @@ mod tests {
     fn test_classify_app_start_failure_app_not_installed() {
         let err = Device::classify_app_start_failure(
             "com.example.app",
-            "Error: Activity class {com.example.app/.MainActivity} does not exist.",
+            "Unknown package: com.example.app",
         );
         assert!(matches!(err, Error::AppNotInstalled(_)));
+    }
+
+    #[test]
+    fn test_classify_app_start_failure_activity_missing_is_not_not_installed() {
+        let err = Device::classify_app_start_failure(
+            "com.example.app",
+            "Error: Activity class {com.example.app/.MainActivity} does not exist.",
+        );
+        assert!(matches!(err, Error::AppStartFailed(_)));
     }
 
     #[test]
