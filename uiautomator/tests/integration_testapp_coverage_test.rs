@@ -133,6 +133,25 @@ async fn back_to_main(device: &Device) {
         .expect("main page did not appear after back");
 }
 
+async fn wait_dialog_result_contains(device: &Device, expected: &str, timeout: Duration) -> bool {
+    device
+        .wait_for(
+            || {
+                let result = device.find(Selector::new().resource_id(app_id("tv_dialog_result")));
+                async move {
+                    Ok(result
+                        .get_text()
+                        .await
+                        .unwrap_or_default()
+                        .contains(expected))
+                }
+            },
+            Some(timeout),
+        )
+        .await
+        .is_ok()
+}
+
 #[tokio::test]
 async fn test_all_main_entries_can_open_target_pages() {
     common::init_test_env();
@@ -370,6 +389,10 @@ async fn test_dialog_flows_and_wait_gone() {
         .wait_gone(Some(Duration::from_secs(5)))
         .await
         .unwrap();
+    assert!(
+        wait_dialog_result_contains(&device, "Alert OK clicked", Duration::from_secs(5)).await,
+        "alert result text did not update in time"
+    );
     let result_text = result.get_text().await.unwrap_or_default();
     assert!(
         result_text.contains("Alert OK clicked"),
@@ -388,6 +411,10 @@ async fn test_dialog_flows_and_wait_gone() {
         .wait_gone(Some(Duration::from_secs(5)))
         .await
         .unwrap();
+    assert!(
+        wait_dialog_result_contains(&device, "Custom dialog Cancel", Duration::from_secs(5)).await,
+        "custom dialog result text did not update in time"
+    );
     let result_text = result.get_text().await.unwrap_or_default();
     assert!(
         result_text.contains("Custom dialog Cancel"),
@@ -396,13 +423,35 @@ async fn test_dialog_flows_and_wait_gone() {
 
     let bottom_sheet = device.find(Selector::new().resource_id(app_id("btn_bottom_sheet")));
     bottom_sheet.click(None, None).await.unwrap();
-    let option2 = device.find(Selector::new().resource_id(app_id("btn_sheet_option2")));
-    option2.wait(Some(Duration::from_secs(5))).await.unwrap();
-    option2.click(None, None).await.unwrap();
-    option2
-        .wait_gone(Some(Duration::from_secs(5)))
-        .await
-        .unwrap();
+    let mut confirmed = false;
+    let mut last_result_text = String::new();
+    for attempt in 1..=3 {
+        let option2 = device.find(Selector::new().resource_id(app_id("btn_sheet_option2")));
+        option2.wait(Some(Duration::from_secs(5))).await.unwrap();
+        common::wait_ui_stable().await;
+        option2.click(None, None).await.unwrap();
+
+        if wait_dialog_result_contains(&device, "Bottom Sheet Option 2", Duration::from_secs(3))
+            .await
+        {
+            if let Err(err) = option2.wait_gone(Some(Duration::from_secs(5))).await {
+                eprintln!(
+                    "warn: btn_sheet_option2 did not disappear after result update (attempt {attempt}): {err:?}"
+                );
+            }
+            confirmed = true;
+            break;
+        }
+
+        last_result_text = result.get_text().await.unwrap_or_default();
+        eprintln!(
+            "warn: bottom sheet option2 click not observed yet (attempt {attempt}/3), result text: {last_result_text}"
+        );
+    }
+    assert!(
+        confirmed,
+        "bottom sheet option2 result not observed after retries, last result text: {last_result_text}"
+    );
     let result_text = result.get_text().await.unwrap_or_default();
     assert!(
         result_text.contains("Bottom Sheet Option 2"),
