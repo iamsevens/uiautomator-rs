@@ -61,7 +61,7 @@ jobs:
         if: always()
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ inputs.serial }}" -Context "serial=${{ inputs.serial }}"
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ inputs.serial }}" -Context "serial=${{ inputs.serial }}" -AllowMissingManifest
 
       - name: Upload smoke artifacts
         if: always()

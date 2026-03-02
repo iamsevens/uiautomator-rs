@@ -137,7 +137,7 @@ jobs:
         if: always()
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ matrix.serial }}" -Context "target=${{ matrix.name }} serial=${{ matrix.serial }}"
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ matrix.serial }}" -Context "target=${{ matrix.name }} serial=${{ matrix.serial }}" -AllowMissingManifest
 
       - name: Upload nightly artifacts
         if: always()
