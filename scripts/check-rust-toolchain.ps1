@@ -76,7 +76,56 @@ function Resolve-RustToolchain {
         }
     }
 
-    throw "rust toolchain not found. install Rust or provide RUST_BIN_DIR/CARGO_HOME for self-hosted runner"
+    Install-RustToolchain
+
+    $rustc = Get-Command rustc -ErrorAction SilentlyContinue
+    $cargo = Get-Command cargo -ErrorAction SilentlyContinue
+    if ($null -eq $rustc -or $null -eq $cargo) {
+        throw "rust toolchain bootstrap failed. set RUST_BIN_DIR/CARGO_HOME or install Rust for the runner account"
+    }
+}
+
+function Install-RustToolchain {
+    Write-Host "rust toolchain not found in PATH; bootstrapping stable toolchain..."
+
+    $baseDir = if (-not [string]::IsNullOrWhiteSpace($env:UIAUTOMATOR_RUST_HOME)) {
+        $env:UIAUTOMATOR_RUST_HOME
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
+        Join-Path $env:RUNNER_TEMP "uiautomator-rust"
+    }
+    else {
+        Join-Path $env:TEMP "uiautomator-rust"
+    }
+
+    $cargoHome = Join-Path $baseDir "cargo"
+    $rustupHome = Join-Path $baseDir "rustup"
+    $cargoBin = Join-Path $cargoHome "bin"
+    $rustupInit = Join-Path $baseDir "rustup-init.exe"
+
+    New-Item -ItemType Directory -Path $baseDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $cargoHome -Force | Out-Null
+    New-Item -ItemType Directory -Path $rustupHome -Force | Out-Null
+
+    $env:CARGO_HOME = $cargoHome
+    $env:RUSTUP_HOME = $rustupHome
+
+    if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_ENV)) {
+        "CARGO_HOME=$cargoHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        "RUSTUP_HOME=$rustupHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+    }
+
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    if (-not (Test-Path $rustupInit)) {
+        Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile $rustupInit -UseBasicParsing
+    }
+
+    & $rustupInit -y --default-toolchain stable --profile minimal --no-modify-path
+    if ($LASTEXITCODE -ne 0) {
+        throw "rustup-init failed with exit code $LASTEXITCODE"
+    }
+
+    $null = Add-PathEntry -PathEntry $cargoBin
 }
 
 Resolve-RustToolchain
