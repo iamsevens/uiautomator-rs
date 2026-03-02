@@ -38,6 +38,14 @@
 - 图像识别集成
 - 录屏功能
 
+### Fixes (CI Regression Matrix Stability) - 2026-03-03
+- Fixed manual dispatch payload handling for `Device Regression Matrix` on PowerShell by using `gh workflow run --json`, avoiding `targets_json` quote-loss and JSON-parse failures in `prepare-targets`.
+- Removed `actions/upload-artifact@v4` from `.github/workflows/device-regression-matrix.yml` to avoid non-functional `Set up job` failures caused by transient action-download timeouts on the self-hosted runner.
+- Stabilized `integration_testapp_coverage_test::test_dialog_flows_and_wait_gone` by adding conditional wait/retry checks for Bottom Sheet result updates on emulator timing variance.
+- Evidence: `Device Regression Matrix` run `22583901973` passed for both targets:
+  - `mumu-16384` (`127.0.0.1:16384`)
+  - `ld-emulator-5554` (`emulator-5554`)
+
 ## [0.1.0] - 2024-01-17
 
 ### 新增
