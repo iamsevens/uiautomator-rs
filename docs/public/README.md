@@ -19,6 +19,7 @@ These documents consolidate internal spec streams into a publishable set:
 - `DESIGN.md`: architecture, module design, key decisions, and risk handling
 - `TASKS.md`: completion ledger, open items, release blocking status, priorities
 - `TESTING_RELEASE.md`: test matrix, failure taxonomy, release gates, evidence templates
+- `RELEASE_NOTES.md`: curated release notes with evidence-backed CI/device regression outcomes
 
 Chinese mirrors are available as `*.zh-CN.md` in the same directory.
 
