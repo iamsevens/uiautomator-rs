@@ -29,6 +29,11 @@ jobs:
   smoke:
     runs-on: [self-hosted, windows]
     timeout-minutes: 120
+    env:
+      ANDROID_HOME: ${{ vars.ANDROID_SDK_ROOT }}
+      ANDROID_SDK_ROOT: ${{ vars.ANDROID_SDK_ROOT }}
+      UIAUTOMATOR_RUST_HOME: ${{ vars.UIAUTOMATOR_RUST_HOME }}
+      UIAUTOMATOR_CACHE_DIR: ${{ vars.UIAUTOMATOR_CACHE_DIR }}
 
     steps:
       - name: Checkout

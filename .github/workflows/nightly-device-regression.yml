@@ -96,6 +96,11 @@ jobs:
     needs: prepare-targets
     runs-on: [self-hosted, windows]
     timeout-minutes: 360
+    env:
+      ANDROID_HOME: ${{ vars.ANDROID_SDK_ROOT }}
+      ANDROID_SDK_ROOT: ${{ vars.ANDROID_SDK_ROOT }}
+      UIAUTOMATOR_RUST_HOME: ${{ vars.UIAUTOMATOR_RUST_HOME }}
+      UIAUTOMATOR_CACHE_DIR: ${{ vars.UIAUTOMATOR_CACHE_DIR }}
     strategy:
       fail-fast: false
       max-parallel: 1
