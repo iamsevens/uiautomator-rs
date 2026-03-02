@@ -573,9 +573,25 @@ try {
             $installOutput = & adb -s $Serial install -r $apkPath 2>&1
             if ($LASTEXITCODE -ne 0) {
                 $text = ($installOutput | ForEach-Object { $_.ToString() }) -join "`n"
-                throw "test-app install failed on $Serial`n$text"
+                if ($text -match "INSTALL_FAILED_UPDATE_INCOMPATIBLE") {
+                    Write-Host "test-app signature mismatch detected; uninstalling existing package and retrying."
+                    $null = Invoke-Adb -CmdArgs @("uninstall", $packageName) -AllowFailure
+
+                    $installOutputRetry = & adb -s $Serial install $apkPath 2>&1
+                    if ($LASTEXITCODE -ne 0) {
+                        $retryText = ($installOutputRetry | ForEach-Object { $_.ToString() }) -join "`n"
+                        throw "test-app reinstall failed on $Serial after uninstall`n$retryText"
+                    }
+
+                    Add-Summary -Step "install_test_app" -Status "ok" -Detail "installed ($reason; reinstalled after signature mismatch)"
+                }
+                else {
+                    throw "test-app install failed on $Serial`n$text"
+                }
             }
-            Add-Summary -Step "install_test_app" -Status "ok" -Detail "installed ($reason)"
+            else {
+                Add-Summary -Step "install_test_app" -Status "ok" -Detail "installed ($reason)"
+            }
         }
         else {
             Add-Summary -Step "install_test_app" -Status "ok" -Detail "already installed ($reason)"
