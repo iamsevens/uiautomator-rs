@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
     println!("示例 4: 等待应用启动");
     println!("等待设置应用启动...");
     let pid = device
-        .app_wait("com.android.settings", Duration::from_secs(10))
+        .app_wait("com.android.settings", Some(Duration::from_secs(10)))
         .await?;
     println!("应用已启动, PID: {}\n", pid);
 
@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
 
     println!("4. 等待应用启动");
     let pid = device
-        .app_wait("com.android.settings", Duration::from_secs(10))
+        .app_wait("com.android.settings", Some(Duration::from_secs(10)))
         .await?;
     println!("   应用已启动, PID: {}", pid);
 

@@ -71,7 +71,8 @@ impl Device {
     ///
     /// - 如果未找到设备，返回 `Error::DeviceNotFound`
     /// - 如果未提供序列号且有多个设备，返回 `Error::MultipleDevicesFound`
-    /// - 如果无法连接到设备，返回 `Error::DeviceConnection`
+    /// - 如果设备离线，返回 `Error::DeviceOffline`
+    /// - 如果 UiAutomator/ATX 服务不可用，返回 `Error::UiAutomatorNotConnected`
     ///
     /// # 示例
     ///
@@ -199,21 +200,24 @@ impl Device {
             AtxAgentClient::new(serial.clone(), adb_client.clone())
                 .await
                 .map_err(|e| {
-                    Error::DeviceConnection(format!(
-                        "创建 ATX-Agent 客户端失败: {}。{}",
+                    warn!(
+                        "创建 ATX-Agent 客户端失败 (serial={}): {}. {}",
+                        serial,
                         e,
                         Self::atx_agent_init_guidance(&serial)
-                    ))
+                    );
+                    Error::DeviceOffline(serial.clone())
                 })?,
         );
 
         // 检查 atx-agent 是否可用
         if !atx_agent_client.is_available().await {
-            return Err(Error::DeviceConnection(format!(
-                "ATX-Agent 不可用（设备: {}）。{}",
+            warn!(
+                "ATX-Agent 不可用 (serial={}). {}",
                 serial,
                 Self::atx_agent_init_guidance(&serial)
-            )));
+            );
+            return Err(Error::UiAutomatorNotConnected);
         }
 
         // 创建 JSON-RPC 客户端（ATX-Agent 模式）
@@ -226,27 +230,33 @@ impl Device {
             )
             .await
             .map_err(|e| {
-                Error::DeviceConnection(format!(
-                    "ATX-Agent 模式初始化失败: {}。{}",
+                warn!(
+                    "ATX-Agent 模式初始化失败 (serial={}): {}. {}",
+                    serial,
                     e,
                     Self::atx_agent_init_guidance(&serial)
-                ))
+                );
+                Error::UiAutomatorNotConnected
             })?,
         );
 
         // 验证服务状态
         let ping_ok = jsonrpc_client.ping().await.map_err(|e| {
-            Error::DeviceConnection(format!(
-                "ATX-Agent 模式连通性检查失败: {}。{}",
+            warn!(
+                "ATX-Agent 模式连通性检查失败 (serial={}): {}. {}",
+                serial,
                 e,
                 Self::atx_agent_init_guidance(&serial)
-            ))
+            );
+            Error::UiAutomatorNotConnected
         })?;
         if !ping_ok {
-            return Err(Error::DeviceConnection(format!(
-                "ATX-Agent 模式连通性检查失败（ping=false）。{}",
+            warn!(
+                "ATX-Agent 模式连通性检查失败 (ping=false, serial={}). {}",
+                serial,
                 Self::atx_agent_init_guidance(&serial)
-            )));
+            );
+            return Err(Error::UiAutomatorNotConnected);
         }
 
         info!("设备连接成功（ATX-Agent 模式）");
@@ -1337,6 +1347,45 @@ impl Device {
             || trimmed.contains("No activities found to run")
     }
 
+    fn classify_app_start_failure(package: &str, reason: &str) -> Error {
+        let lower = reason.to_lowercase();
+        let app_not_installed_markers = [
+            "unknown package",
+            "activity class",
+            "does not exist",
+            "unable to resolve intent",
+            "unable to find explicit activity class",
+            "no activity found",
+            "no activities found to run",
+        ];
+
+        if app_not_installed_markers
+            .iter()
+            .any(|marker| lower.contains(marker))
+        {
+            return Error::AppNotInstalled(package.to_string());
+        }
+
+        let app_crash_markers = [
+            "fatal exception",
+            "has crashed",
+            "has stopped",
+            "force finishing activity",
+            "process crashed",
+            "anr in",
+            "application not responding",
+        ];
+
+        if app_crash_markers
+            .iter()
+            .any(|marker| lower.contains(marker))
+        {
+            return Error::AppCrashed(package.to_string());
+        }
+
+        Error::AppStartFailed(format!("{}: {}", package, reason))
+    }
+
     /// 提取 app_start 的关键错误信息，避免将完整输出塞进错误对象。
     fn extract_app_start_failure_reason(output: &str) -> String {
         if let Some(line) = output
@@ -1406,10 +1455,10 @@ impl Device {
 
         if exit_code.map(|code| code != 0).unwrap_or(false) {
             let reason = Self::extract_app_start_failure_reason(&output);
-            return Err(Error::AppStartFailed(format!(
-                "{}: failed to resolve launch activity: {}",
-                package, reason
-            )));
+            return Err(Self::classify_app_start_failure(
+                package,
+                &format!("failed to resolve launch activity: {}", reason),
+            ));
         }
 
         if let Some(component) = Self::parse_resolved_activity_component(&output) {
@@ -1417,10 +1466,10 @@ impl Device {
         }
 
         let reason = Self::extract_app_start_failure_reason(&output);
-        Err(Error::AppStartFailed(format!(
-            "{}: failed to resolve launch activity: {}",
-            package, reason
-        )))
+        Err(Self::classify_app_start_failure(
+            package,
+            &format!("failed to resolve launch activity: {}", reason),
+        ))
     }
 
     /// 启动应用
@@ -1432,7 +1481,9 @@ impl Device {
     ///
     /// # 错误
     ///
-    /// - 如果应用启动失败，返回 `Error::AppStartFailed`
+    /// - 如果应用未安装，返回 `Error::AppNotInstalled`
+    /// - 如果应用崩溃，返回 `Error::AppCrashed`
+    /// - 其他启动失败返回 `Error::AppStartFailed`
     /// - 当包名或 Activity 无效时，错误信息会包含 `am start` 的关键失败行
     ///
     /// # 示例
@@ -1499,8 +1550,7 @@ impl Device {
             } else {
                 reason
             };
-
-            return Err(Error::AppStartFailed(format!("{}: {}", package, detail)));
+            return Err(Self::classify_app_start_failure(package, &detail));
         }
 
         info!("应用启动成功: {}", package);
@@ -1685,7 +1735,7 @@ impl Device {
     /// # 参数
     ///
     /// * `package` - 应用包名
-    /// * `timeout` - 超时时间
+    /// * `timeout` - 超时时间，`None` 表示使用全局等待超时（`Device::get_wait_timeout()`）
     ///
     /// # 返回
     ///
@@ -1710,13 +1760,16 @@ impl Device {
     ///     device.app_start("com.android.settings", None).await?;
     ///     
     ///     // 等待应用启动
-    ///     let pid = device.app_wait("com.android.settings", Duration::from_secs(10)).await?;
+    ///     let pid = device
+    ///         .app_wait("com.android.settings", Some(Duration::from_secs(10)))
+    ///         .await?;
     ///     println!("应用已启动，PID: {}", pid);
     ///     
     ///     Ok(())
     /// }
     /// ```
-    pub async fn app_wait(&self, package: &str, timeout: Duration) -> Result<u32> {
+    pub async fn app_wait(&self, package: &str, timeout: Option<Duration>) -> Result<u32> {
+        let timeout = timeout.unwrap_or_else(|| self.get_wait_timeout());
         debug!("等待应用启动: {}, 超时: {:?}", package, timeout);
 
         let start = std::time::Instant::now();
@@ -1827,7 +1880,7 @@ impl Device {
 
         // 等待服务就绪
         atx_agent_client
-            .wait_for_atx_agent_ready(Duration::from_secs(30))
+            .wait_for_atx_agent_ready(Some(Duration::from_secs(30)))
             .await?;
 
         info!("ATX-Agent 安装完成");
@@ -1953,6 +2006,30 @@ mod tests {
         assert!(reason.starts_with("Error: "));
         assert!(reason.ends_with("..."));
         assert!(reason.chars().count() <= 243); // 240 + "..."
+    }
+
+    #[test]
+    fn test_classify_app_start_failure_app_not_installed() {
+        let err = Device::classify_app_start_failure(
+            "com.example.app",
+            "Error: Activity class {com.example.app/.MainActivity} does not exist.",
+        );
+        assert!(matches!(err, Error::AppNotInstalled(_)));
+    }
+
+    #[test]
+    fn test_classify_app_start_failure_app_crashed() {
+        let err = Device::classify_app_start_failure(
+            "com.example.app",
+            "FATAL EXCEPTION: main Process crashed unexpectedly",
+        );
+        assert!(matches!(err, Error::AppCrashed(_)));
+    }
+
+    #[test]
+    fn test_classify_app_start_failure_fallback() {
+        let err = Device::classify_app_start_failure("com.example.app", "exit_code=1 unknown");
+        assert!(matches!(err, Error::AppStartFailed(_)));
     }
 
     #[test]
@@ -2736,8 +2813,7 @@ mod tests {
                 assert!(
                     matches!(
                         e,
-                        Error::DeviceConnection(_)
-                            | Error::Adb(_)
+                        Error::Adb(_)
                             | Error::DeviceNotFound
                             | Error::MultipleDevicesFound
                             | Error::DeviceOffline(_)
@@ -2760,8 +2836,10 @@ mod tests {
         // 当有多个设备时，应该返回错误提示
         let result = Device::connect(None).await;
 
-        if let Err(Error::DeviceConnection(msg)) = result {
-            assert!(msg.contains("多个设备"));
+        match result {
+            Err(Error::MultipleDevicesFound) => {}
+            Err(err) => panic!("expected MultipleDevicesFound, got: {:?}", err),
+            Ok(_) => panic!("expected MultipleDevicesFound, but connect succeeded"),
         }
     }
 
@@ -3704,7 +3782,7 @@ mod tests {
 
             // 等待应用启动
             let result = device
-                .app_wait("com.android.settings", Duration::from_secs(10))
+                .app_wait("com.android.settings", Some(Duration::from_secs(10)))
                 .await;
 
             match result {
@@ -3728,7 +3806,7 @@ mod tests {
         if let Ok(device) = Device::connect(None).await {
             // 等待一个不会启动的应用（使用很短的超时）
             let result = device
-                .app_wait("com.nonexistent.app", Duration::from_secs(2))
+                .app_wait("com.nonexistent.app", Some(Duration::from_secs(2)))
                 .await;
 
             // 应该超时返回错误
@@ -3757,7 +3835,7 @@ mod tests {
             // 再次等待应用（应该立即返回）
             let start = std::time::Instant::now();
             let result = device
-                .app_wait("com.android.settings", Duration::from_secs(10))
+                .app_wait("com.android.settings", Some(Duration::from_secs(10)))
                 .await;
             let elapsed = start.elapsed();
 
@@ -3791,7 +3869,7 @@ mod tests {
 
             // 等待应用启动
             let wait_result = device
-                .app_wait("com.android.settings", Duration::from_secs(10))
+                .app_wait("com.android.settings", Some(Duration::from_secs(10)))
                 .await;
 
             match wait_result {

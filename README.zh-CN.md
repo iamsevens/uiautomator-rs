@@ -291,7 +291,9 @@ device.app_start("com.android.settings", None).await?;
 device.app_start("com.android.settings", Some(".Settings")).await?;
 
 // 等待应用启动（最多 10 秒）
-let pid = device.app_wait("com.android.settings", Duration::from_secs(10)).await?;
+let pid = device
+    .app_wait("com.android.settings", Some(Duration::from_secs(10)))
+    .await?;
 println!("应用 PID: {}", pid);
 
 // 获取当前前台应用
@@ -1230,7 +1232,7 @@ uiautomator::init_logger_with_level(LevelFilter::Debug);
 | 启动应用 | `d.app_start("pkg")` | `d.app_start("pkg", None).await?` |
 | 启动 Activity | `d.app_start("pkg", "Activity")` | `d.app_start("pkg", Some("Activity")).await?` |
 | 停止应用 | `d.app_stop("pkg")` | `d.app_stop("pkg").await?` |
-| 等待应用 | `d.app_wait("pkg", timeout=10)` | `d.app_wait("pkg", Duration::from_secs(10)).await?` |
+| 等待应用 | `d.app_wait("pkg", timeout=10)` | `d.app_wait("pkg", Some(Duration::from_secs(10))).await?` |
 | 当前应用 | `info = d.app_current()` | `let info = d.app_current().await?` |
 | **截图** |
 | 截图保存 | `d.screenshot("ss.png")` | `d.screenshot_to_file("ss.png").await?` |

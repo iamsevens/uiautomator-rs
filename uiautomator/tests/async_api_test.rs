@@ -82,7 +82,7 @@ async fn test_device_io_methods_are_async() {
 
         // 验证 app_wait() 是异步的
         let _ = device
-            .app_wait("com.android.settings", Duration::from_secs(1))
+            .app_wait("com.android.settings", Some(Duration::from_secs(1)))
             .await;
 
         // 验证 wait_for() 是异步的

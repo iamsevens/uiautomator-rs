@@ -81,7 +81,7 @@
 //!
 //! // 等待应用启动
 //! device.app_wait("com.android.settings",
-//!     std::time::Duration::from_secs(10)).await?;
+//!     Some(std::time::Duration::from_secs(10))).await?;
 //!
 //! // 获取当前应用
 //! let app = device.app_current().await?;

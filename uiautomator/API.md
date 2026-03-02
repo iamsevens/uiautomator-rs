@@ -370,13 +370,13 @@ if let Some(pid) = app.pid {
 
 ---
 
-#### `device.app_wait(package: &str, timeout: Duration) -> Result<u32>`
+#### `device.app_wait(package: &str, timeout: Option<Duration>) -> Result<u32>`
 
 等待应用启动。
 
 **参数**:
 - `package`: 应用包名
-- `timeout`: 超时时间
+- `timeout`: 超时时间，`None` 表示使用全局等待超时
 
 **返回**: `Result<u32>` - 应用 PID
 
@@ -384,7 +384,9 @@ if let Some(pid) = app.pid {
 ```rust
 use std::time::Duration;
 
-let pid = device.app_wait("com.android.settings", Duration::from_secs(10)).await?;
+let pid = device
+    .app_wait("com.android.settings", Some(Duration::from_secs(10)))
+    .await?;
 println!("应用已启动，PID: {}", pid);
 ```
 
@@ -1113,7 +1115,9 @@ async fn main() -> uiautomator::Result<()> {
     
     // 启动应用
     device.app_start("com.android.settings", None).await?;
-    device.app_wait("com.android.settings", Duration::from_secs(10)).await?;
+    device
+        .app_wait("com.android.settings", Some(Duration::from_secs(10)))
+        .await?;
     
     // 查找并点击元素
     let element = device.find(Selector::new().text("Wi-Fi"));

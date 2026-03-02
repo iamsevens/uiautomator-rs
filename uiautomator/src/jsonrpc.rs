@@ -165,7 +165,7 @@ impl JsonRpcClient {
         // 检查 atx-agent 是否可用
         if let Some(ref atx_client) = client.atx_agent_client {
             if !atx_client.is_available().await {
-                return Err(Error::DeviceConnection("ATX-Agent 不可用".to_string()));
+                return Err(Error::UiAutomatorNotConnected);
             }
 
             // 确保 uiautomator2 服务运行

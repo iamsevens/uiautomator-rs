@@ -49,6 +49,26 @@ async fn main() -> uiautomator::Result<()> {
 }
 ```
 
+## Error Handling Example
+
+```rust
+use std::time::Duration;
+use uiautomator::{Device, Error};
+
+async fn run(device: &Device) -> Result<(), Error> {
+    match device.app_wait("com.example.app", Some(Duration::from_secs(5))).await {
+        Ok(pid) => {
+            println!("app ready: {pid}");
+            Ok(())
+        }
+        Err(Error::AppNotInstalled(pkg)) => Err(Error::AppNotInstalled(pkg)),
+        Err(Error::AppCrashed(pkg)) => Err(Error::AppCrashed(pkg)),
+        Err(Error::Timeout) => Err(Error::Timeout),
+        Err(other) => Err(other),
+    }
+}
+```
+
 ## Modes
 
 - `Auto` (default): try ATX-Agent first, fallback to Direct.
@@ -81,6 +101,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1
   - `../docs/public/DESIGN.md`
   - `../docs/public/TASKS.md`
   - `../docs/public/TESTING_RELEASE.md`
+- Error handling guide:
+  - `ERROR_HANDLING.md`
 
 Note: `tests/**` and `examples/**` stay in GitHub and are not included in the crates package by default.
 

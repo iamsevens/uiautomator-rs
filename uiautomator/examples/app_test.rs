@@ -49,7 +49,10 @@ async fn main() -> uiautomator::Result<()> {
 
     // 步骤 3: 等待应用启动
     println!("步骤 3: 等待应用启动完成(超时 10 秒)");
-    match device.app_wait(package_name, Duration::from_secs(10)).await {
+    match device
+        .app_wait(package_name, Some(Duration::from_secs(10)))
+        .await
+    {
         Ok(pid) => {
             println!("应用已启动, PID: {}\n", pid);
         }

@@ -1054,12 +1054,13 @@ impl AtxAgentClient {
     ///
     /// # 参数
     ///
-    /// * `timeout` - 超时时间
+    /// * `timeout` - 超时时间，`None` 表示使用默认值（30 秒）
     ///
     /// # 错误
     ///
     /// 如果超时仍未就绪，返回错误
-    pub async fn wait_for_atx_agent_ready(&self, timeout: Duration) -> Result<()> {
+    pub async fn wait_for_atx_agent_ready(&self, timeout: Option<Duration>) -> Result<()> {
+        let timeout = timeout.unwrap_or(Duration::from_secs(30));
         info!("等待 atx-agent 服务就绪");
 
         let start = std::time::Instant::now();
@@ -1184,7 +1185,7 @@ impl AtxAgentClient {
         self.start_atx_agent().await?;
 
         // 等待服务就绪
-        self.wait_for_atx_agent_ready(Duration::from_secs(30))
+        self.wait_for_atx_agent_ready(Some(Duration::from_secs(30)))
             .await?;
 
         info!("atx-agent 服务重启完成");
@@ -1207,7 +1208,7 @@ impl AtxAgentClient {
         if !running {
             info!("atx-agent 服务未运行，正在启动...");
             self.start_atx_agent().await?;
-            self.wait_for_atx_agent_ready(Duration::from_secs(30))
+            self.wait_for_atx_agent_ready(Some(Duration::from_secs(30)))
                 .await?;
         } else {
             debug!("atx-agent 服务已在运行");

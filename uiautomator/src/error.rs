@@ -62,6 +62,25 @@
 //! ```
 //!
 //! 更多示例请参考 API 文档中各错误类型的说明。
+//!
+//! # 推荐的错误处理模式
+//!
+//! ```no_run
+//! use std::time::Duration;
+//! use uiautomator::{Device, Error};
+//!
+//! # async fn run() -> Result<(), Error> {
+//! let device = Device::connect(None).await?;
+//! match device.app_wait("com.example.app", Some(Duration::from_secs(5))).await {
+//!     Ok(pid) => println!("app ready: {pid}"),
+//!     Err(Error::AppNotInstalled(pkg)) => eprintln!("install app first: {pkg}"),
+//!     Err(Error::AppCrashed(pkg)) => eprintln!("app crashed: {pkg}"),
+//!     Err(Error::Timeout) => eprintln!("wait timeout"),
+//!     Err(e) => return Err(e),
+//! }
+//! # Ok(())
+//! # }
+//! ```
 
 use std::time::Duration;
 use thiserror::Error;

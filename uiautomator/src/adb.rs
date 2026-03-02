@@ -1,4 +1,4 @@
-﻿//! ADB 客户端封装
+//! ADB 客户端封装
 //!
 //! 封装 adb_client 库,提供设备连接、命令执行和文件传输功能
 
@@ -502,4 +502,3 @@ mod tests {
         assert!(AdbClient::try_decode_shell_v2(&raw).is_none());
     }
 }
-

@@ -168,7 +168,7 @@ async fn test_app_wait() {
 
     // 等待应用启动
     let result = device
-        .app_wait(common::TEST_APP_PACKAGE, Duration::from_secs(10))
+        .app_wait(common::TEST_APP_PACKAGE, Some(Duration::from_secs(10)))
         .await;
     assert!(result.is_ok(), "等待应用启动应该成功");
 
@@ -189,7 +189,7 @@ async fn test_app_wait_timeout() {
 
     // 等待一个不存在的应用
     let result = device
-        .app_wait("com.nonexistent.app.12345", Duration::from_secs(2))
+        .app_wait("com.nonexistent.app.12345", Some(Duration::from_secs(2)))
         .await;
     assert!(result.is_err(), "等待不存在的应用应该超时");
 
@@ -241,7 +241,7 @@ async fn test_app_lifecycle() {
 
     // 3. 等待应用就绪
     let pid = device
-        .app_wait(common::TEST_APP_PACKAGE, Duration::from_secs(10))
+        .app_wait(common::TEST_APP_PACKAGE, Some(Duration::from_secs(10)))
         .await
         .unwrap();
     println!("3. 应用就绪，PID: {}", pid);

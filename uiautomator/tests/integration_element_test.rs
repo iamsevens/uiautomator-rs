@@ -1,4 +1,4 @@
-﻿// 闆嗘垚娴嬭瘯锛氬厓绱犲畾浣嶅拰鎿嶄綔
+// 闆嗘垚娴嬭瘯锛氬厓绱犲畾浣嶅拰鎿嶄綔
 // 闇€姹? 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8
 
 mod common;
@@ -118,7 +118,8 @@ async fn dismiss_soft_keyboard_if_needed(device: &Device) {
 }
 
 async fn ensure_input_forms_context(device: &Device) {
-    let username = device.find(Selector::new().resource_id("com.uiautomator.testapp:id/et_username"));
+    let username =
+        device.find(Selector::new().resource_id("com.uiautomator.testapp:id/et_username"));
     if username
         .exists(Some(Duration::from_secs(1)))
         .await
@@ -241,7 +242,10 @@ async fn click_submit_with_retry(device: &Device) -> bool {
             .exists(Some(Duration::from_secs(1)))
             .await
             .unwrap_or(false)
-            && submit.click(Some(Duration::from_secs(3)), None).await.is_ok()
+            && submit
+                .click(Some(Duration::from_secs(3)), None)
+                .await
+                .is_ok()
         {
             return true;
         }
@@ -288,7 +292,10 @@ async fn test_element_find_by_resource_id() {
     let element = device.find(selector);
 
     let exists = element.exists(Some(Duration::from_secs(5))).await.unwrap();
-    assert!(exists, "搴旇鑳介€氳繃璧勬簮 ID 鎵惧埌 Basic Controls 鎸夐挳");
+    assert!(
+        exists,
+        "搴旇鑳介€氳繃璧勬簮 ID 鎵惧埌 Basic Controls 鎸夐挳"
+    );
     println!("閫氳繃璧勬簮 ID 鎵惧埌鍏冪礌: {}", exists);
 
     common::cleanup_test_env(&device).await.ok();
@@ -400,7 +407,10 @@ async fn test_element_submit_form_updates_result() {
         fill_required_form_fields(&device).await,
         "failed to fill form fields after retries"
     );
-    assert!(click_submit_with_retry(&device).await, "failed to click submit button");
+    assert!(
+        click_submit_with_retry(&device).await,
+        "failed to click submit button"
+    );
 
     let title_id = "com.uiautomator.testapp:id/tv_input_title";
     let deadline = Instant::now() + Duration::from_secs(10);
@@ -505,7 +515,10 @@ async fn test_element_get_info() {
             println!("  杈圭晫: {:?}", info.bounds);
             println!("  鍙偣鍑? {}", info.clickable);
 
-            assert!(!info.class_name.is_empty(), "class name should not be empty");
+            assert!(
+                !info.class_name.is_empty(),
+                "class name should not be empty"
+            );
             assert!(
                 info.class_name.contains("Button"),
                 "搴旇鍛戒腑鎸夐挳鎺т欢锛屽疄闄? {}",
@@ -536,7 +549,10 @@ async fn test_element_get_text() {
 
         if let Ok(text) = text {
             println!("鍏冪礌鏂囨湰: {}", text);
-            assert!(text.contains("UIAutomator"), "鏍囬鏂囨湰搴斿寘鍚?UIAutomator");
+            assert!(
+                text.contains("UIAutomator"),
+                "鏍囬鏂囨湰搴斿寘鍚?UIAutomator"
+            );
         }
     }
 
