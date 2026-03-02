@@ -151,9 +151,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.
 
 ### 9.2 Soft Gates（强烈建议）
 
-1. 多版本 Android 回归矩阵（Task 23）。
-2. `cargo install` 烟测（Task 24）。
-3. Nightly 回归守门（Task 25）。
+1. 持续维护多版本 Android 回归矩阵（Task 23，基线已完成）。
+2. 持续维护 `cargo install` 烟测链路（Task 24，基线已完成）。
+3. 持续维护 Nightly 回归守门（Task 25，基线已完成）。
 
 ## 10. 发布执行顺序
 
@@ -230,5 +230,5 @@ bash scripts/release-check.sh
 - CI 消费 `summary.json` / `summary.junit.xml` 并保留工件。
 - 失败自动分类到 `E-*` 并触发告警。
 
-对应任务：`docs/public/TASKS.md` 中 Task 23/24/25。
+对应任务：见 `docs/public/TASKS.md`（Task 23/24/25 已完成，当前开放项主要是 Phase2 后续增强）。
 

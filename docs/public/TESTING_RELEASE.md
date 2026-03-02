@@ -153,9 +153,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.
 
 ### Soft Gates
 
-1. Task 23 matrix expansion
-2. Task 24 post-install smoke path
-3. Task 25 nightly guardrail
+1. Keep Task 23 matrix expansion maintained (baseline completed).
+2. Keep Task 24 post-install smoke path maintained (baseline completed).
+3. Keep Task 25 nightly guardrail healthy (baseline completed).
 
 ## 10. Release Execution Order
 
@@ -221,4 +221,4 @@ bash scripts/release-check.sh
 - Keep structured artifacts as CI artifacts.
 - Route failures using the `E-*` taxonomy.
 
-Related open tasks: see `TASKS.md` Task 23/24/25.
+Related tasks: see `TASKS.md` (Task 23/24/25 completed; current open items are Phase2 follow-ups).
