@@ -35,57 +35,33 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check Rust toolchain
-        shell: powershell
+        shell: cmd
         run: |
-          rustc --version
-          cargo --version
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-rust-toolchain.ps1
 
       - name: Ensure target device online
-        shell: powershell
+        shell: cmd
         env:
           LDPLAYER_START_CMD: ${{ vars.LDPLAYER_START_CMD }}
           MUMU_START_CMD: ${{ vars.MUMU_START_CMD }}
           MUMU_ADB_ENDPOINTS: ${{ vars.MUMU_ADB_ENDPOINTS }}
         run: |
-          & powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ensure-test-device.ps1 `
-            -Serial '${{ inputs.serial }}' `
-            -LdplayerStartCommand $env:LDPLAYER_START_CMD `
-            -MumuStartCommand $env:MUMU_START_CMD `
-            -MumuConnectEndpoints $env:MUMU_ADB_ENDPOINTS `
-            -WaitTimeoutSeconds 360
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ensure-test-device.ps1 -Serial "${{ inputs.serial }}" -WaitTimeoutSeconds 360
 
       - name: Run post-install smoke
         id: run_smoke
         continue-on-error: true
-        shell: powershell
+        shell: cmd
         run: |
-          $manifestPath = Join-Path $env:RUNNER_TEMP "install-smoke-manifest.json"
-          "MANIFEST_PATH=$manifestPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-
-          & powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\post-install-smoke.ps1 `
-            -Serial '${{ inputs.serial }}' `
-            -TargetName '${{ inputs.target_name }}' `
-            -StepTimeoutMinutes '${{ inputs.step_timeout_minutes }}' `
-            -OutputManifestPath $manifestPath
+          set "MANIFEST_PATH=%RUNNER_TEMP%\install-smoke-manifest.json"
+          echo MANIFEST_PATH=%MANIFEST_PATH%>>"%GITHUB_ENV%"
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\post-install-smoke.ps1 -Serial "${{ inputs.serial }}" -TargetName "${{ inputs.target_name }}" -StepTimeoutMinutes "${{ inputs.step_timeout_minutes }}" -OutputManifestPath "%MANIFEST_PATH%"
 
       - name: Parse structured summary
         if: always()
-        shell: powershell
+        shell: cmd
         run: |
-          if (-not (Test-Path $env:MANIFEST_PATH)) {
-            throw "manifest not found: $env:MANIFEST_PATH"
-          }
-
-          $manifest = Get-Content $env:MANIFEST_PATH -Raw -Encoding utf8 | ConvertFrom-Json
-          "RUN_STATUS=$($manifest.status)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "RUN_LOG_DIR=$($manifest.run_log_dir)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "RUN_SUMMARY_JSON=$($manifest.summary_json)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "RUN_SUMMARY_JUNIT=$($manifest.summary_junit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          $safeSerial = '${{ inputs.serial }}' -replace '[:\\\/<>"\|\*\?]', '_'
-          "SAFE_SERIAL=$safeSerial" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-
-          Write-Host "serial=${{ inputs.serial }} status=$($manifest.status)"
-          Write-Host "log_dir=$($manifest.run_log_dir)"
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ inputs.serial }}" -Context "serial=${{ inputs.serial }}"
 
       - name: Upload smoke artifacts
         if: always()
@@ -102,8 +78,6 @@ jobs:
 
       - name: Enforce summary status
         if: always()
-        shell: powershell
+        shell: cmd
         run: |
-          if ($env:RUN_STATUS -ne 'passed') {
-            throw "install smoke failed for serial=${{ inputs.serial }}"
-          }
+          powershell -NoProfile -ExecutionPolicy Bypass -Command "if ('%RUN_STATUS%' -ne 'passed') { throw 'install smoke failed for serial=${{ inputs.serial }}' }"

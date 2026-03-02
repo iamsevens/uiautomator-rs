@@ -6,7 +6,7 @@ param(
 
     [string]$MumuStartCommand = "",
 
-    [string]$MumuConnectEndpoints = "127.0.0.1:16384,127.0.0.1:5555",
+    [string]$MumuConnectEndpoints = "",
 
     [int]$WaitTimeoutSeconds = 360,
 
@@ -15,6 +15,25 @@ param(
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+
+$defaultMumuEndpoints = "127.0.0.1:16384,127.0.0.1:5555"
+
+if ([string]::IsNullOrWhiteSpace($LdplayerStartCommand) -and -not [string]::IsNullOrWhiteSpace($env:LDPLAYER_START_CMD)) {
+    $LdplayerStartCommand = $env:LDPLAYER_START_CMD
+}
+
+if ([string]::IsNullOrWhiteSpace($MumuStartCommand) -and -not [string]::IsNullOrWhiteSpace($env:MUMU_START_CMD)) {
+    $MumuStartCommand = $env:MUMU_START_CMD
+}
+
+if ([string]::IsNullOrWhiteSpace($MumuConnectEndpoints)) {
+    if (-not [string]::IsNullOrWhiteSpace($env:MUMU_ADB_ENDPOINTS)) {
+        $MumuConnectEndpoints = $env:MUMU_ADB_ENDPOINTS
+    }
+    else {
+        $MumuConnectEndpoints = $defaultMumuEndpoints
+    }
+}
 
 function Write-Step {
     param([string]$Message)
