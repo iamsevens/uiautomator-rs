@@ -101,6 +101,26 @@ jobs:
           rustc --version
           cargo --version
 
+      - name: Build test-app debug APK
+        shell: powershell
+        run: |
+          if (-not (Test-Path ".\test-app\gradlew.bat")) {
+            throw "test-app\gradlew.bat not found"
+          }
+
+          Push-Location .\test-app
+          try {
+            .\gradlew.bat assembleDebug --no-daemon
+          }
+          finally {
+            Pop-Location
+          }
+
+          $apkPath = Join-Path $PWD "test-app\app\build\outputs\apk\debug\app-debug.apk"
+          if (-not (Test-Path $apkPath)) {
+            throw "test-app apk build output not found: $apkPath"
+          }
+
       - name: Ensure target device online
         shell: powershell
         env:
