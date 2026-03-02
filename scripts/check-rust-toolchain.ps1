@@ -51,11 +51,18 @@ function Resolve-RustToolchain {
 
     $userRoot = Join-Path $env:SystemDrive "Users"
     if (Test-Path $userRoot) {
-        $userCargoBins = Get-ChildItem -Path $userRoot -Directory -ErrorAction SilentlyContinue |
-            ForEach-Object { Join-Path $_.FullName ".cargo\\bin" } |
-            Where-Object { Test-Path (Join-Path $_ "rustc.exe") }
-        foreach ($bin in $userCargoBins) {
-            $candidates.Add($bin)
+        $userDirs = Get-ChildItem -Path $userRoot -Directory -ErrorAction SilentlyContinue
+        foreach ($dir in $userDirs) {
+            $bin = Join-Path $dir.FullName ".cargo\\bin"
+            try {
+                if (Test-Path (Join-Path $bin "rustc.exe") -ErrorAction Stop) {
+                    $candidates.Add($bin)
+                }
+            }
+            catch {
+                # Ignore access-denied directories under C:\Users for service accounts.
+                continue
+            }
         }
     }
 
