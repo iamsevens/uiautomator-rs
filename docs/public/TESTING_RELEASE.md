@@ -21,6 +21,7 @@ Sources:
 - `scripts/device-full-test.ps1`
 - `scripts/api-coverage-report.ps1`
 - `scripts/release-check.ps1`, `scripts/release-check.sh`
+- `scripts/trigger-gh-device-regression.ps1`
 
 Applies to:
 
@@ -167,6 +168,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
 cargo publish --dry-run
 ```
+
+### GitHub Actions (Manual Sequential Trigger)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-device-regression.ps1 -Serial <serial> -TargetName <name> -ExpectedAbi <abi> -ExpectedAndroidMajor <major>
+```
+
+Behavior:
+
+1. Dispatch `Install Smoke` and wait for `success`.
+2. Dispatch `Device Regression Matrix` and wait for `success`.
+3. Fail fast on timeout or non-success conclusion with direct run URL.
 
 ### Commands (Linux/macOS)
 

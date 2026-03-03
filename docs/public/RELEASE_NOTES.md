@@ -12,7 +12,7 @@ No public API breaking changes.
 ### Fixed
 
 - Fixed `Device Regression Matrix` manual dispatch payload handling on PowerShell.
-  - Use `gh workflow run --json` to avoid quote loss in `targets_json`.
+  - Use `gh api workflow_dispatch` payload files (UTF-8 no BOM) to avoid quote loss in `targets_json`.
   - Prevents JSON parse failures in `prepare-targets`.
 
 - Fixed non-functional workflow failures on self-hosted runner setup.

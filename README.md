@@ -108,6 +108,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1
 
 Outputs include logs plus machine-readable artifacts (`summary.json`, `summary.junit.xml`).
 
+### GitHub Actions regression (sequential)
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-device-regression.ps1 -Serial <serial> -TargetName <name> -ExpectedAbi <abi> -ExpectedAndroidMajor <major>
+```
+
+The script dispatches `Install Smoke` first, waits for completion, then dispatches `Device Regression Matrix`.  
+It uses `gh api workflow_dispatch` payload files (UTF-8, no BOM) to avoid `targets_json` quote-loss in PowerShell.
+
 ## Public Documentation
 
 - [Public Docs Index](docs/public/README.md)
