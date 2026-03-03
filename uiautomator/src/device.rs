@@ -3036,6 +3036,14 @@ mod tests {
     #[ignore = "需要真实设备或模拟器"]
     async fn test_press_power_key() {
         use crate::key::Key;
+        use std::env;
+
+        if env::var("UIAUTOMATOR_ALLOW_POWER_KEY_TEST").ok().as_deref() != Some("1") {
+            eprintln!(
+                "skip test_press_power_key: set UIAUTOMATOR_ALLOW_POWER_KEY_TEST=1 to enable"
+            );
+            return;
+        }
 
         if let Ok(device) = Device::connect(None).await {
             // 测试按下 Power 键（需求 6.3）

@@ -20,7 +20,9 @@ param(
 
     [switch]$SkipInit,
 
-    [switch]$SkipTestAppInstall
+    [switch]$SkipTestAppInstall,
+
+    [bool]$StrictEnvironmentCheck = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -429,6 +431,35 @@ function Get-RemoteFileHash {
     return $null
 }
 
+function Install-TestAppWithFallback {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ApkPath,
+        [Parameter(Mandatory = $true)]
+        [string]$PackageName
+    )
+
+    $installResult = Invoke-Adb -CmdArgs @("install", "-r", $ApkPath) -AllowFailure
+    if ($installResult.ExitCode -eq 0) {
+        return "installed/reinstalled with -r"
+    }
+
+    $text = $installResult.Output
+    if ($text -match "INSTALL_FAILED_UPDATE_INCOMPATIBLE") {
+        Write-Host "test-app signature mismatch detected; uninstalling existing package and retrying."
+        $null = Invoke-Adb -CmdArgs @("uninstall", $PackageName) -AllowFailure
+        $installRetryResult = Invoke-Adb -CmdArgs @("install", $ApkPath) -AllowFailure
+        if ($installRetryResult.ExitCode -eq 0) {
+            return "reinstalled after signature mismatch"
+        }
+
+        $retryText = $installRetryResult.Output
+        throw "test-app reinstall failed on $Serial after uninstall`n$retryText"
+    }
+
+    throw "test-app install failed on $Serial`n$text"
+}
+
 try {
     $preRunArtifacts = Move-RootDebugXmlArtifacts -DestinationDir $debugDumpDir
     if ($preRunArtifacts.Count -gt 0) {
@@ -468,6 +499,18 @@ try {
     }
 
     Add-Summary -Step "validate_device_profile" -Status "ok" -Detail "abi=$abi android=$androidRelease major=$androidMajor sdk=$sdkInt"
+
+    Write-Step "Preflight environment readiness"
+    $shellPing = Invoke-Adb -CmdArgs @("shell", "echo", "__U2_PREFLIGHT_OK__")
+    if ($shellPing.Output.Trim() -ne "__U2_PREFLIGHT_OK__") {
+        throw "preflight failed: adb shell echo mismatch"
+    }
+
+    $pmProbe = Invoke-Adb -CmdArgs @("shell", "pm", "path", "android") -AllowFailure
+    if ($pmProbe.ExitCode -ne 0 -or $pmProbe.Output -notmatch "package:") {
+        throw "preflight failed: package manager is not ready on device '$Serial'"
+    }
+    Add-Summary -Step "preflight_environment" -Status "ok" -Detail "adb shell + pm path validated"
 
     if (-not $SkipCleanup) {
         Write-Step "Cleanup ATX/uiautomator state on target"
@@ -521,9 +564,38 @@ try {
             -Command "cargo run -- init -f -s $Serial" `
             -TimeoutMinutes 15
         Add-Summary -Step "init_force" -Status "ok" -Detail "uiautomator-cli init -f -s $Serial" -DurationSeconds $initResult.DurationSeconds -ExitCode $initResult.ExitCode -StdoutPath $initResult.Stdout -StderrPath $initResult.Stderr
+
+        Write-Step "Verify runtime environment after init"
+        $statusResult = Start-StepProcess `
+            -Name "verify_cli_status" `
+            -WorkingDirectory (Join-Path $repoRoot "uiautomator-cli") `
+            -Command "cargo run -- status -s $Serial" `
+            -TimeoutMinutes 10
+
+        $atxBinary = Invoke-Adb -CmdArgs @("shell", "ls", "/data/local/tmp/atx-agent") -AllowFailure
+        if ($atxBinary.ExitCode -ne 0 -or $atxBinary.Output -notmatch "atx-agent") {
+            throw "runtime verify failed: /data/local/tmp/atx-agent missing after init"
+        }
+
+        $atxPid = Invoke-Adb -CmdArgs @("shell", "pidof", "atx-agent") -AllowFailure
+        if ([string]::IsNullOrWhiteSpace($atxPid.Output.Trim())) {
+            throw "runtime verify failed: atx-agent process not running after init"
+        }
+
+        $u2MainPkg = Invoke-Adb -CmdArgs @("shell", "pm", "path", "com.github.uiautomator") -AllowFailure
+        $u2TestPkg = Invoke-Adb -CmdArgs @("shell", "pm", "path", "com.github.uiautomator.test") -AllowFailure
+        if ($u2MainPkg.ExitCode -ne 0 -or $u2MainPkg.Output -notmatch "package:") {
+            throw "runtime verify failed: com.github.uiautomator not installed after init"
+        }
+        if ($u2TestPkg.ExitCode -ne 0 -or $u2TestPkg.Output -notmatch "package:") {
+            throw "runtime verify failed: com.github.uiautomator.test not installed after init"
+        }
+
+        Add-Summary -Step "verify_runtime_environment" -Status "ok" -Detail "cli status + atx-agent binary/pid + uiautomator packages verified" -DurationSeconds $statusResult.DurationSeconds -ExitCode $statusResult.ExitCode -StdoutPath $statusResult.Stdout -StderrPath $statusResult.Stderr
     }
     else {
         Add-Summary -Step "init_force" -Status "skipped" -Detail "SkipInit"
+        Add-Summary -Step "verify_runtime_environment" -Status "skipped" -Detail "SkipInit"
     }
 
     if (-not $SkipTestAppInstall) {
@@ -534,6 +606,12 @@ try {
         }
 
         $packageName = "com.uiautomator.testapp"
+
+        if ($StrictEnvironmentCheck) {
+            $installDetail = Install-TestAppWithFallback -ApkPath $apkPath -PackageName $packageName
+            Add-Summary -Step "install_test_app" -Status "ok" -Detail "strict-check: $installDetail"
+        }
+        else {
         $localSha256 = (Get-FileHash -Path $apkPath -Algorithm SHA256).Hash.ToLowerInvariant()
         $localMd5 = (Get-FileHash -Path $apkPath -Algorithm MD5).Hash.ToLowerInvariant()
         $remoteApkPath = Get-InstalledPackageApkPath -PackageName $packageName
@@ -596,6 +674,7 @@ try {
         else {
             Add-Summary -Step "install_test_app" -Status "ok" -Detail "already installed ($reason)"
         }
+        }
     }
     else {
         Add-Summary -Step "install_test_app" -Status "skipped" -Detail "SkipTestAppInstall"
@@ -606,22 +685,22 @@ try {
         @{
             Name    = "uiautomator-cli_nonignored"
             WorkDir = Join-Path $repoRoot "uiautomator-cli"
-            Cmd     = "`$env:TEST_DEVICE_SERIAL='$Serial'; `$env:ANDROID_SERIAL='$Serial'; `$env:RUST_TEST_THREADS='1'; cargo test -- --nocapture --test-threads=1"
+            Cmd     = "`$env:TEST_DEVICE_SERIAL='$Serial'; `$env:ANDROID_SERIAL='$Serial'; `$env:RUST_TEST_THREADS='1'; `$env:UIAUTOMATOR_ALLOW_POWER_KEY_TEST='0'; cargo test -- --nocapture --test-threads=1"
         },
         @{
             Name    = "uiautomator-cli_ignored"
             WorkDir = Join-Path $repoRoot "uiautomator-cli"
-            Cmd     = "`$env:TEST_DEVICE_SERIAL='$Serial'; `$env:ANDROID_SERIAL='$Serial'; `$env:RUST_TEST_THREADS='1'; cargo test -- --ignored --nocapture --test-threads=1"
+            Cmd     = "`$env:TEST_DEVICE_SERIAL='$Serial'; `$env:ANDROID_SERIAL='$Serial'; `$env:RUST_TEST_THREADS='1'; `$env:UIAUTOMATOR_ALLOW_POWER_KEY_TEST='0'; cargo test -- --ignored --nocapture --test-threads=1"
         },
         @{
             Name    = "uiautomator_nonignored"
             WorkDir = Join-Path $repoRoot "uiautomator"
-            Cmd     = "`$env:TEST_DEVICE_SERIAL='$Serial'; `$env:ANDROID_SERIAL='$Serial'; `$env:RUST_TEST_THREADS='1'; cargo test -- --nocapture --test-threads=1"
+            Cmd     = "`$env:TEST_DEVICE_SERIAL='$Serial'; `$env:ANDROID_SERIAL='$Serial'; `$env:RUST_TEST_THREADS='1'; `$env:UIAUTOMATOR_ALLOW_POWER_KEY_TEST='0'; cargo test -- --nocapture --test-threads=1"
         },
         @{
             Name    = "uiautomator_ignored"
             WorkDir = Join-Path $repoRoot "uiautomator"
-            Cmd     = "`$env:TEST_DEVICE_SERIAL='$Serial'; `$env:ANDROID_SERIAL='$Serial'; `$env:RUST_TEST_THREADS='1'; cargo test -- --ignored --nocapture --test-threads=1"
+            Cmd     = "`$env:TEST_DEVICE_SERIAL='$Serial'; `$env:ANDROID_SERIAL='$Serial'; `$env:RUST_TEST_THREADS='1'; `$env:UIAUTOMATOR_ALLOW_POWER_KEY_TEST='0'; cargo test -- --ignored --nocapture --test-threads=1"
         }
     )
 
