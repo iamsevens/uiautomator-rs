@@ -279,7 +279,12 @@ function Start-StepProcess {
     $safeName = ($Name -replace "[^A-Za-z0-9._-]", "_")
     $stdout = Join-Path $runLogDir "$safeName.log"
     $stderr = Join-Path $runLogDir "$safeName.err.log"
-    $wrapper = '$ErrorActionPreference=''Stop''; $utf8 = New-Object System.Text.UTF8Encoding($false); [Console]::InputEncoding = $utf8; [Console]::OutputEncoding = $utf8; $OutputEncoding = $utf8; try { ' + $Command + '; $code = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE } } catch { Write-Error ($_ | Out-String); $code = 1 }; Write-Output "__CODEX_EXIT__=$code"; exit $code'
+    $exitCodeFile = Join-Path $runLogDir "$safeName.exitcode.txt"
+    if (Test-Path $exitCodeFile) {
+        Remove-Item -Path $exitCodeFile -Force -ErrorAction SilentlyContinue
+    }
+    $escapedExitCodeFile = $exitCodeFile -replace "'", "''"
+    $wrapper = '$ErrorActionPreference=''Stop''; $utf8 = New-Object System.Text.UTF8Encoding($false); [Console]::InputEncoding = $utf8; [Console]::OutputEncoding = $utf8; $OutputEncoding = $utf8; $exitCodePath = ''' + $escapedExitCodeFile + '''; try { ' + $Command + '; $code = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE } } catch { Write-Error ($_ | Out-String); $code = 1 }; try { Set-Content -Path $exitCodePath -Value $code -Encoding ascii -NoNewline } catch {}; Write-Output "__CODEX_EXIT__=$code"; exit $code'
 
     Write-Host "[$Name] log: $stdout"
 
@@ -316,6 +321,16 @@ function Start-StepProcess {
     $proc.Refresh()
 
     $exitCode = $null
+    if (Test-Path $exitCodeFile) {
+        $rawExitCode = Get-Content $exitCodeFile -Raw -Encoding ascii -ErrorAction SilentlyContinue
+        if ($rawExitCode) {
+            $trimmedExitCode = $rawExitCode.Trim()
+            if ($trimmedExitCode -match '^-?\d+$') {
+                $exitCode = [int]$trimmedExitCode
+            }
+        }
+    }
+
     $markerPattern = "__CODEX_EXIT__=(\d+)"
     for ($retry = 0; $retry -lt 20 -and $null -eq $exitCode; $retry++) {
         foreach ($path in @($stdout, $stderr)) {
@@ -336,7 +351,12 @@ function Start-StepProcess {
     }
 
     if ($null -eq $exitCode) {
-        $exitCode = $proc.ExitCode
+        try {
+            $exitCode = [int]$proc.ExitCode
+        }
+        catch {
+            $exitCode = $null
+        }
     }
     if ($null -eq $exitCode) {
         throw "step '$Name' finished but exit code is unavailable. Logs: $stdout"
@@ -359,6 +379,7 @@ function Start-StepProcess {
         Name            = $Name
         Stdout          = $stdout
         Stderr          = $stderr
+        ExitCodeFile    = $exitCodeFile
         ExitCode        = $exitCode
         StartedAt       = $started.ToString("o")
         FinishedAt      = $ended.ToString("o")

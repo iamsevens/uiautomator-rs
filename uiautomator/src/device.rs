@@ -1853,29 +1853,50 @@ impl Device {
     /// ```
     fn parse_app_component_from_dump(output: &str) -> Option<(String, String)> {
         let re = regex::Regex::new(r"([A-Za-z0-9_.]+)/([A-Za-z0-9_.$]+)").ok()?;
-        let focus_markers = [
-            "mCurrentFocus",
+        // Prefer resumed/focused activity markers over window focus markers to avoid
+        // transient IME focus (keyboard windows) being parsed as foreground apps.
+        let focus_markers_by_priority = [
             "mFocusedApp",
             "topResumedActivity",
             "mResumedActivity",
+            "mCurrentFocus",
         ];
+        let is_plausible_package_name =
+            |package: &str| package == "android" || package.contains('.');
 
+        for marker in focus_markers_by_priority {
+            for line in output.lines() {
+                if !line.contains(marker) {
+                    continue;
+                }
+                if let Some(caps) = re.captures(line) {
+                    let package = caps.get(1)?.as_str().to_string();
+                    let activity = caps.get(2)?.as_str().to_string();
+                    if is_plausible_package_name(&package) {
+                        return Some((package, activity));
+                    }
+                }
+            }
+        }
+
+        let fallback_markers = [
+            "ActivityRecord{",
+            "ResumedActivity",
+            "topResumedActivity",
+            "mFocusedApp",
+            "mCurrentFocus",
+            "mResumedActivity",
+        ];
         for line in output.lines() {
-            if !focus_markers.iter().any(|marker| line.contains(marker)) {
+            if !fallback_markers.iter().any(|marker| line.contains(marker)) {
                 continue;
             }
             if let Some(caps) = re.captures(line) {
                 let package = caps.get(1)?.as_str().to_string();
                 let activity = caps.get(2)?.as_str().to_string();
-                return Some((package, activity));
-            }
-        }
-
-        for line in output.lines() {
-            if let Some(caps) = re.captures(line) {
-                let package = caps.get(1)?.as_str().to_string();
-                let activity = caps.get(2)?.as_str().to_string();
-                return Some((package, activity));
+                if is_plausible_package_name(&package) {
+                    return Some((package, activity));
+                }
             }
         }
 
@@ -2337,6 +2358,31 @@ mod tests {
             parsed,
             Some(("com.android.settings".to_string(), ".Settings".to_string()))
         );
+    }
+
+    #[test]
+    fn test_parse_app_component_from_dump_ignores_keyboard_focus_short_name() {
+        let dump = r#"
+            mCurrentFocus=Window{7f54f7 u0 keyb/v}
+            mFocusedApp=AppWindowToken{5e6e8f token=Token{0 ActivityRecord{abc u0 com.android.settings/.Settings t88}}}
+        "#;
+
+        let parsed = Device::parse_app_component_from_dump(dump);
+        assert_eq!(
+            parsed,
+            Some(("com.android.settings".to_string(), ".Settings".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_parse_app_component_from_dump_does_not_use_unfocused_window_lines() {
+        let dump = r#"
+            Window #7 Window{8338c4c u0 com.samsung.android.app.cocktailbarservice/com.samsung.android.app.cocktailbarservice.CocktailBarService}:
+            Window #11 Window{d73791c u0 com.android.settings/com.android.settings.Settings}:
+        "#;
+
+        let parsed = Device::parse_app_component_from_dump(dump);
+        assert_eq!(parsed, None);
     }
 
     #[test]
@@ -3077,7 +3123,36 @@ mod tests {
     #[tokio::test]
     #[ignore = "需要多个设备连接"]
     async fn test_connect_multiple_devices_error() {
-        // 当有多个设备时，应该返回错误提示
+        let adb = match crate::adb::AdbClient::new().await {
+            Ok(client) => client,
+            Err(err) => {
+                eprintln!(
+                    "skip test_connect_multiple_devices_error: failed to create adb client: {:?}",
+                    err
+                );
+                return;
+            }
+        };
+
+        let devices = match adb.devices().await {
+            Ok(devices) => devices,
+            Err(err) => {
+                eprintln!(
+                    "skip test_connect_multiple_devices_error: failed to list devices: {:?}",
+                    err
+                );
+                return;
+            }
+        };
+
+        if devices.len() < 2 {
+            eprintln!(
+                "skip test_connect_multiple_devices_error: requires >=2 connected devices, found {}",
+                devices.len()
+            );
+            return;
+        }
+
         let result = Device::connect(None).await;
 
         match result {
