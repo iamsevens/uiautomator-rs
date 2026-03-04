@@ -53,6 +53,20 @@ Windows:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
 ```
 
+## Docs Coverage Check
+
+From repository root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1
+```
+
+Optional threshold enforcement:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
+```
+
 ## Pull Request Requirements
 
 - Explain motivation and scope.
@@ -63,3 +77,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
 ## Conduct
 
 By participating, you agree to follow [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
+
+

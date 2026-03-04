@@ -49,6 +49,20 @@ Windows:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
 ```
 
+## 文档覆盖率检查
+
+仓库根目录执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1
+```
+
+如需启用阈值失败（用于 CI 守门）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
+```
+
 ## Pull Request 要求
 
 - 说明变更背景和目标。
@@ -59,4 +73,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
 ## 行为规范
 
 参与本项目即表示同意遵守 `CODE_OF_CONDUCT.md`。
+
+
 

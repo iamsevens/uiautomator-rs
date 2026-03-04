@@ -766,6 +766,35 @@ impl AtxAgentClient {
         Ok(())
     }
 
+    /// Check whether `atx-agent` is installed and valid on device.
+    ///
+    /// When the `atx-agent-install` feature is enabled, this method also
+    /// verifies that the device binary checksum matches one of bundled assets.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(true)`: binary exists and passes validation.
+    /// - `Ok(false)`: binary missing or validation mismatch.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when ADB commands fail unexpectedly.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use uiautomator::{AdbClient, AtxAgentClient};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let adb = AdbClient::new().await?;
+    ///     let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    ///     let installed = client.check_atx_agent_installed().await?;
+    ///     println!("atx-agent installed: {installed}");
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn check_atx_agent_installed(&self) -> Result<bool> {
         debug!("检查 atx-agent 是否已安装");
 

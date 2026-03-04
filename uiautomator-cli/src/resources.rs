@@ -11,6 +11,14 @@
 /// 嵌入的资源文件
 ///
 /// 包含所有必需的资源文件及其 MD5 校验和
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator_cli::resources::EmbeddedResources;
+///
+/// let resources = EmbeddedResources::get();
+/// assert!(!resources.atx_agent.is_empty());
+/// ```
 #[derive(Debug, Clone)]
 pub struct EmbeddedResources {
     /// atx-agent 二进制文件（ARM64 架构）
@@ -117,6 +125,15 @@ impl EmbeddedResources {
 
     /// 获取资源文件的总大小（字节）
     #[allow(dead_code)]
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator_cli::resources::EmbeddedResources;
+    ///
+    /// let resources = EmbeddedResources::get();
+    /// let bytes = resources.total_size();
+    /// assert!(bytes > 0);
+    /// ```
     pub fn total_size(&self) -> usize {
         self.atx_agent.len() + self.app_uiautomator_apk.len() + self.app_uiautomator_test_apk.len()
     }

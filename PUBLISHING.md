@@ -54,7 +54,13 @@ cd uiautomator && cargo package --list
 cd ../uiautomator-cli && cargo package --list
 ```
 
-5. Run dry-run publish in order:
+5. Run docs/examples coverage report:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
+```
+
+6. Run dry-run publish in order:
 
 ```bash
 cd uiautomator && cargo publish --dry-run
@@ -75,3 +81,5 @@ Note:
 1. `tests/**` and `examples/**` are excluded by default.
 2. Runtime-required files (for example under `assets/**` or `src/**`) must be covered by `include`.
 3. New publish-facing docs (for example `MIGRATION.md`) must be explicitly added to `include`.
+
+

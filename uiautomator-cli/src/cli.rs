@@ -5,6 +5,16 @@
 use clap::{Parser, Subcommand};
 
 /// uiautomator CLI 工具
+/// # Examples
+///
+/// ```
+/// use clap::Parser;
+/// use uiautomator_cli::cli::{Cli, Commands};
+///
+/// let cli = Cli::parse_from(["uiautomator", "--serial", "emulator-5554", "status"]);
+/// assert_eq!(cli.serial.as_deref(), Some("emulator-5554"));
+/// assert!(matches!(cli.command, Commands::Status));
+/// ```
 #[derive(Parser, Debug)]
 #[command(name = "uiautomator")]
 #[command(version)]
@@ -20,6 +30,15 @@ pub struct Cli {
 }
 
 /// 可用的子命令
+/// # Examples
+///
+/// ```
+/// use clap::Parser;
+/// use uiautomator_cli::cli::{Cli, Commands};
+///
+/// let cli = Cli::parse_from(["uiautomator", "init", "--force"]);
+/// assert!(matches!(cli.command, Commands::Init { force: true }));
+/// ```
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// 初始化设备（安装并启动 ATX-Agent）

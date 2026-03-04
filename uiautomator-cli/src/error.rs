@@ -8,6 +8,14 @@ use std::fmt;
 /// CLI 错误类型
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
+/// # Examples
+///
+/// ```
+/// use uiautomator_cli::error::CliError;
+///
+/// let err = CliError::DeviceNotFound;
+/// assert!(!err.to_string().is_empty());
+/// ```
 pub enum CliError {
     /// 未找到连接的设备
     DeviceNotFound,
@@ -100,6 +108,14 @@ impl ErrorMessageBuilder {
 impl CliError {
     /// 获取彩色格式的错误消息
     #[allow(dead_code)]
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator_cli::error::CliError;
+    ///
+    /// let msg = CliError::DeviceNotFound.colored_message();
+    /// assert!(!msg.is_empty());
+    /// ```
     pub fn colored_message(&self) -> String {
         match self {
             CliError::DeviceNotFound => ErrorMessageBuilder::new("未找到连接的设备")

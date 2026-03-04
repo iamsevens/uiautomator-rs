@@ -1693,6 +1693,28 @@ impl Device {
         None
     }
 
+    /// Get the current foreground application from system dumpsys output.
+    ///
+    /// The result includes package name, activity name, and optional PID.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when ADB command execution fails or when the current
+    /// foreground component cannot be parsed.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let app = device.app_current().await?;
+    ///     println!("package={}, activity={}", app.package, app.activity);
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn app_current(&self) -> Result<crate::models::AppInfo> {
         debug!("获取当前前台应用信息");
 

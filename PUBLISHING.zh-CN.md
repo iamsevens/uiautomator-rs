@@ -52,7 +52,13 @@ cd uiautomator && cargo package --list
 cd ../uiautomator-cli && cargo package --list
 ```
 
-5. Run dry-run publish in order:
+5. 运行文档/示例覆盖率检查：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
+```
+
+6. Run dry-run publish in order:
 
 ```bash
 cd uiautomator && cargo publish --dry-run
@@ -73,4 +79,6 @@ cd ../uiautomator-cli && cargo publish --dry-run
 1. `tests/**` 与 `examples/**` 默认不进入发布包；如果要发布这些内容，需要显式修改对应 crate 的 `include`。
 2. 新增运行时必需文件（例如 `assets/**`、`src/**` 下的新文件）后，确认已被 `include` 覆盖。
 3. 新增顶层发布文档（例如 `MIGRATION.md`）需要显式加入对应 crate 的 `include`。
+
+
 

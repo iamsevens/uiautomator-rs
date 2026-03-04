@@ -21,6 +21,17 @@ const NO_DEVICE_ERROR: &str = "未找到连接的设备\n\n\
 /// 服务状态
 ///
 /// 表示 ATX-Agent 服务的运行状态和版本信息
+/// # Examples
+///
+/// ```
+/// use uiautomator_cli::installer::ServiceStatus;
+///
+/// let status = ServiceStatus {
+///     running: true,
+///     version: Some("0.10.0".to_string()),
+/// };
+/// assert!(status.running);
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct ServiceStatus {
     /// 服务是否正在运行
@@ -32,6 +43,18 @@ pub struct ServiceStatus {
 /// 安装器
 ///
 /// 封装 ATX-Agent 的安装和管理逻辑
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator_cli::installer::Installer;
+///
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     let installer = Installer::new(None).await?;
+///     println!("target serial = {}", installer.device_serial());
+///     Ok(())
+/// }
+/// ```
 #[derive(Debug)]
 pub struct Installer {
     /// ADB 客户端
@@ -181,6 +204,19 @@ impl Installer {
     /// # 返回
     ///
     /// 返回当前安装器关联的设备序列号
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator_cli::installer::Installer;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> anyhow::Result<()> {
+    ///     let installer = Installer::new(None).await?;
+    ///     let serial = installer.device_serial();
+    ///     println!("serial: {serial}");
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn device_serial(&self) -> &str {
         &self.device_serial
     }
@@ -191,6 +227,18 @@ impl Installer {
     ///
     /// 返回 ADB 客户端的引用
     #[allow(dead_code)]
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator_cli::installer::Installer;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> anyhow::Result<()> {
+    ///     let installer = Installer::new(None).await?;
+    ///     let _adb = installer.adb_client();
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn adb_client(&self) -> &Arc<AdbClient> {
         &self.adb_client
     }

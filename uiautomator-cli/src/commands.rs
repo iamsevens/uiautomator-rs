@@ -25,6 +25,17 @@ use crate::resources::EmbeddedResources;
 /// * 如果未找到连接的设备，返回错误
 /// * 如果安装过程失败，返回错误
 /// * 如果服务启动失败，返回错误
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator_cli::commands::execute_init;
+///
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     execute_init(Some("emulator-5554".to_string()), false).await?;
+///     Ok(())
+/// }
+/// ```
 pub async fn execute_init(serial: Option<String>, force: bool) -> Result<()> {
     use crate::installer::Installer;
     use anyhow::Context;
@@ -138,6 +149,17 @@ pub async fn execute_init(serial: Option<String>, force: bool) -> Result<()> {
 ///
 /// * 如果未找到连接的设备，返回错误
 /// * 如果查询状态失败，返回错误
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator_cli::commands::execute_status;
+///
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     execute_status(Some("emulator-5554".to_string())).await?;
+///     Ok(())
+/// }
+/// ```
 pub async fn execute_status(serial: Option<String>) -> Result<()> {
     use crate::installer::Installer;
     use anyhow::Context;
@@ -227,6 +249,17 @@ fn display_status_info(status: &crate::installer::ServiceStatus) {
 /// * 如果未找到连接的设备，返回错误
 /// * 如果服务未安装，返回错误
 /// * 如果重启失败，返回错误
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator_cli::commands::execute_restart;
+///
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     execute_restart(Some("emulator-5554".to_string())).await?;
+///     Ok(())
+/// }
+/// ```
 pub async fn execute_restart(serial: Option<String>) -> Result<()> {
     use crate::installer::Installer;
     use anyhow::Context;
@@ -320,6 +353,17 @@ pub async fn execute_restart(serial: Option<String>) -> Result<()> {
 ///
 /// * 如果未找到连接的设备，返回错误
 /// * 如果卸载过程失败，返回错误
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator_cli::commands::execute_uninstall;
+///
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     execute_uninstall(Some("emulator-5554".to_string())).await?;
+///     Ok(())
+/// }
+/// ```
 pub async fn execute_uninstall(serial: Option<String>) -> Result<()> {
     use crate::installer::Installer;
     use anyhow::Context;
@@ -404,6 +448,17 @@ pub async fn execute_uninstall(serial: Option<String>) -> Result<()> {
 /// 满足需求 5.4 和 7.4：
 /// - 5.4: WHEN 用户查询版本信息 THEN CLI Tool SHALL 显示内置资源文件的版本号
 /// - 7.4: WHEN 用户执行 `uiautomator version` 命令 THEN CLI Tool SHALL 显示 CLI 工具版本和内置资源版本
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator_cli::commands::execute_version;
+///
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     execute_version().await?;
+///     Ok(())
+/// }
+/// ```
 pub async fn execute_version() -> Result<()> {
     // 显示 CLI 工具信息
     println!();
