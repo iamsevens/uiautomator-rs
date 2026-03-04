@@ -25,6 +25,22 @@ const UIAUTOMATOR_PORT: u16 = 9008;
 /// JSON-RPC 客户端
 ///
 /// 负责与设备端 UiAutomator 服务通信，支持 Direct 模式和 ATX-Agent 模式
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::sync::{Arc, RwLock};
+/// use uiautomator::{AdbClient, JsonRpcClient, Settings};
+///
+/// #[tokio::main]
+/// async fn main() -> uiautomator::Result<()> {
+///     let adb = Arc::new(AdbClient::new().await?);
+///     let settings = Arc::new(RwLock::new(Settings::default()));
+///     let client = JsonRpcClient::new_direct("emulator-5554".to_string(), adb, settings).await?;
+///     assert!(client.ping().await?);
+///     Ok(())
+/// }
+/// ```
 #[derive(Debug)]
 pub struct JsonRpcClient {
     /// 设备序列号
@@ -85,6 +101,21 @@ impl JsonRpcClient {
     /// # 错误
     ///
     /// 如果无法安装或启动服务，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::{Arc, RwLock};
+    /// use uiautomator::{AdbClient, JsonRpcClient, Settings};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let adb = Arc::new(AdbClient::new().await?);
+    ///     let settings = Arc::new(RwLock::new(Settings::default()));
+    ///     let _client = JsonRpcClient::new_direct("emulator-5554".to_string(), adb, settings).await?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn new_direct(
         device_serial: String,
         adb_client: Arc<AdbClient>,
@@ -132,6 +163,28 @@ impl JsonRpcClient {
     /// # 错误
     ///
     /// 如果无法连接到 atx-agent，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::{Arc, RwLock};
+    /// use uiautomator::{AdbClient, AtxAgentClient, JsonRpcClient, Settings};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let adb = Arc::new(AdbClient::new().await?);
+    ///     let atx = Arc::new(AtxAgentClient::new("emulator-5554".to_string(), Arc::clone(&adb)).await?);
+    ///     let settings = Arc::new(RwLock::new(Settings::default()));
+    ///     let _client = JsonRpcClient::new_with_atx_agent(
+    ///         "emulator-5554".to_string(),
+    ///         adb,
+    ///         atx,
+    ///         settings,
+    ///     )
+    ///     .await?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn new_with_atx_agent(
         device_serial: String,
         adb_client: Arc<AdbClient>,
@@ -193,6 +246,20 @@ impl JsonRpcClient {
     /// # 错误
     ///
     /// 如果无法安装或启动服务，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use uiautomator::{AdbClient, JsonRpcClient};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let adb = Arc::new(AdbClient::new().await?);
+    ///     let _client = JsonRpcClient::new("emulator-5554".to_string(), adb).await?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn new(device_serial: String, adb_client: Arc<AdbClient>) -> Result<Self> {
         let settings = Arc::new(RwLock::new(Settings::default()));
         Self::new_direct(device_serial, adb_client, settings).await
@@ -201,6 +268,26 @@ impl JsonRpcClient {
     /// 创建使用自定义 JSON-RPC endpoint 的 Direct 模式客户端。
     ///
     /// 该模式不会执行设备侧服务准备流程，适用于 mock/代理等场景。
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::{Arc, RwLock};
+    /// use uiautomator::{AdbClient, JsonRpcClient, Settings};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let adb = Arc::new(AdbClient::new().await?);
+    ///     let settings = Arc::new(RwLock::new(Settings::default()));
+    ///     let _client = JsonRpcClient::new_direct_with_rpc_url(
+    ///         "mock-device".to_string(),
+    ///         adb,
+    ///         settings,
+    ///         "http://127.0.0.1:19008/jsonrpc/0".to_string(),
+    ///     )?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn new_direct_with_rpc_url(
         device_serial: String,
         adb_client: Arc<AdbClient>,
@@ -245,6 +332,23 @@ impl JsonRpcClient {
     /// # 返回
     ///
     /// 返回反序列化后的结果
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use serde_json::json;
+    /// use uiautomator::{AdbClient, JsonRpcClient};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let adb = Arc::new(AdbClient::new().await?);
+    ///     let client = JsonRpcClient::new("emulator-5554".to_string(), adb).await?;
+    ///     let info: serde_json::Value = client.call("deviceInfo", json!({})).await?;
+    ///     println!("{info}");
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn call<T: for<'de> Deserialize<'de>>(
         &self,
         method: &str,
@@ -529,6 +633,22 @@ impl JsonRpcClient {
     /// # 返回
     ///
     /// 如果服务正常运行，返回 true
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use uiautomator::{AdbClient, JsonRpcClient};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let adb = Arc::new(AdbClient::new().await?);
+    ///     let client = JsonRpcClient::new("emulator-5554".to_string(), adb).await?;
+    ///     let alive = client.ping().await?;
+    ///     println!("alive: {alive}");
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn ping(&self) -> Result<bool> {
         debug!("Ping UiAutomator 服务");
 
