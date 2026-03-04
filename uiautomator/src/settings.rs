@@ -7,6 +7,23 @@ use std::time::Duration;
 /// 库的配置设置
 ///
 /// 包含各种超时时间、延迟和重试策略的配置。
+/// # Examples
+///
+/// ```
+/// use std::time::Duration;
+/// use uiautomator::Settings;
+///
+/// let settings = Settings {
+///     wait_timeout: Duration::from_secs(20),
+///     operation_delay_before: Duration::from_millis(50),
+///     operation_delay_after: Duration::from_millis(50),
+///     http_timeout: Duration::from_secs(60),
+///     max_retry: 3,
+///     polling_interval: Duration::from_millis(500),
+///     retry_base_delay: Duration::from_millis(500),
+/// };
+/// assert_eq!(settings.max_retry, 3);
+/// ```
 #[derive(Debug, Clone)]
 pub struct Settings {
     /// 等待元素出现的默认超时时间
@@ -277,6 +294,17 @@ impl Settings {
     /// # 返回
     ///
     /// 返回 self 以支持链式调用
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use uiautomator::Settings;
+    ///
+    /// let settings = Settings::new()
+    ///     .with_operation_delay_before(Duration::from_millis(80));
+    /// assert_eq!(settings.operation_delay_before, Duration::from_millis(80));
+    /// ```
     pub fn with_operation_delay_before(mut self, delay: Duration) -> Self {
         self.operation_delay_before = delay;
         self
@@ -291,6 +319,17 @@ impl Settings {
     /// # 返回
     ///
     /// 返回 self 以支持链式调用
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use uiautomator::Settings;
+    ///
+    /// let settings = Settings::new()
+    ///     .with_operation_delay_after(Duration::from_millis(120));
+    /// assert_eq!(settings.operation_delay_after, Duration::from_millis(120));
+    /// ```
     pub fn with_operation_delay_after(mut self, delay: Duration) -> Self {
         self.operation_delay_after = delay;
         self
@@ -305,6 +344,17 @@ impl Settings {
     /// # 返回
     ///
     /// 返回 self 以支持链式调用
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use uiautomator::Settings;
+    ///
+    /// let settings = Settings::new()
+    ///     .with_http_timeout(Duration::from_secs(45));
+    /// assert_eq!(settings.http_timeout, Duration::from_secs(45));
+    /// ```
     pub fn with_http_timeout(mut self, timeout: Duration) -> Self {
         self.http_timeout = timeout;
         self
@@ -319,6 +369,15 @@ impl Settings {
     /// # 返回
     ///
     /// 返回 self 以支持链式调用
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Settings;
+    ///
+    /// let settings = Settings::new().with_max_retry(6);
+    /// assert_eq!(settings.max_retry, 6);
+    /// ```
     pub fn with_max_retry(mut self, max_retry: u32) -> Self {
         self.max_retry = max_retry;
         self

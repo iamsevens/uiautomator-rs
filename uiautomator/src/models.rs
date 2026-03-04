@@ -7,6 +7,22 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// 设备信息
 ///
 /// 包含设备的基本信息，如屏幕尺寸、旋转角度、当前应用等。
+/// # Examples
+///
+/// ```
+/// use uiautomator::models::DeviceInfo;
+///
+/// let info = DeviceInfo {
+///     display_width: 1080,
+///     display_height: 2400,
+///     display_rotation: 0,
+///     current_package_name: "com.android.settings".to_string(),
+///     sdk_int: 34,
+///     screen_on: true,
+///     natural_orientation: true,
+/// };
+/// assert_eq!(info.display_width, 1080);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceInfo {
@@ -30,6 +46,32 @@ pub struct DeviceInfo {
 /// UI 元素信息
 ///
 /// 包含 UI 元素的所有属性,如文本、边界、状态等。
+/// # Examples
+///
+/// ```
+/// use uiautomator::models::{ElementInfo, Rect};
+///
+/// let info = ElementInfo {
+///     text: "Login".to_string(),
+///     content_description: "".to_string(),
+///     class_name: "android.widget.Button".to_string(),
+///     package_name: "com.example.app".to_string(),
+///     resource_id: "com.example.app:id/login".to_string(),
+///     bounds: Rect::new(0, 0, 300, 120),
+///     visible_bounds: Rect::new(0, 0, 300, 120),
+///     clickable: true,
+///     enabled: true,
+///     focusable: true,
+///     focused: false,
+///     scrollable: false,
+///     long_clickable: false,
+///     checkable: false,
+///     checked: false,
+///     selected: false,
+///     child_count: 0,
+/// };
+/// assert!(info.clickable);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ElementInfo {
@@ -81,6 +123,14 @@ pub struct ElementInfo {
 /// 矩形区域
 ///
 /// 表示屏幕上的一个矩形区域，使用左上角和右下角坐标定义。
+/// # Examples
+///
+/// ```
+/// use uiautomator::models::Rect;
+///
+/// let rect = Rect { left: 10, top: 20, right: 110, bottom: 220 };
+/// assert_eq!(rect.center(), (60, 120));
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Rect {
     /// 左边界 x 坐标
@@ -181,6 +231,18 @@ impl Rect {
 /// 应用信息
 ///
 /// 包含应用的包名、Activity 和进程 ID。
+/// # Examples
+///
+/// ```
+/// use uiautomator::models::AppInfo;
+///
+/// let app = AppInfo {
+///     package: "com.example.app".to_string(),
+///     activity: ".MainActivity".to_string(),
+///     pid: Some(12345),
+/// };
+/// assert_eq!(app.package, "com.example.app");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppInfo {
     /// 应用包名

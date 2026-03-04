@@ -109,6 +109,21 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果无法建立端口转发，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use uiautomator::{AdbClient, AtxAgentClient};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let adb = AdbClient::new().await?;
+    ///     let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    ///     let _ = client.version().await?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn new(device_serial: String, adb_client: Arc<AdbClient>) -> Result<Self> {
         info!("创建 ATX-Agent 客户端: {}", device_serial);
 

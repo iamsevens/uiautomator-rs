@@ -17,6 +17,14 @@ use std::time::Duration;
 
 /// 服务器模式
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// # Examples
+///
+/// ```
+/// use uiautomator::ServerMode;
+///
+/// let mode = ServerMode::Auto;
+/// assert!(matches!(mode, ServerMode::Auto));
+/// ```
 pub enum ServerMode {
     /// Direct 模式（快速测试，阶段 1 默认）
     Direct,
@@ -29,6 +37,19 @@ pub enum ServerMode {
 /// Device 结构体
 ///
 /// 代表一个 Android 设备连接，提供所有自动化操作的入口
+///
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator::Device;
+///
+/// #[tokio::main]
+/// async fn main() -> uiautomator::Result<()> {
+///     let device = Device::connect(None).await?;
+///     println!("connected: {}", device.serial());
+///     Ok(())
+/// }
+/// ```
 #[derive(Debug, Clone)]
 pub struct Device {
     /// 设备序列号
@@ -99,6 +120,19 @@ impl Device {
     /// # 参数
     ///
     /// * `serial` - 设备序列号，None 表示自动选择设备
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect_quick(Some("emulator-5554")).await?;
+    ///     println!("{}", device.serial());
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn connect_quick(serial: Option<&str>) -> Result<Self> {
         Self::connect_with_mode(serial, ServerMode::Direct).await
     }
@@ -111,6 +145,19 @@ impl Device {
     ///
     /// * `serial` - 设备序列号（可选，默认 `mock-device`）
     /// * `rpc_url` - 完整 JSON-RPC endpoint，例如 `http://127.0.0.1:12345/jsonrpc/0`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Device;
+    ///
+    /// let device = Device::connect_with_rpc_url(
+    ///     Some("mock-1"),
+    ///     "http://127.0.0.1:19008/jsonrpc/0",
+    /// )?;
+    /// assert_eq!(device.serial(), "mock-1");
+    /// # Ok::<(), uiautomator::Error>(())
+    /// ```
     pub fn connect_with_rpc_url(serial: Option<&str>, rpc_url: &str) -> Result<Self> {
         let serial = serial.unwrap_or("mock-device").to_string();
         let settings = Arc::new(RwLock::new(Settings::default()));
@@ -137,6 +184,19 @@ impl Device {
     ///
     /// * `serial` - 设备序列号，None 表示自动选择设备
     /// * `mode` - 服务器模式（Direct、ATX-Agent 或 Auto）
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::{Device, ServerMode};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect_with_mode(Some("emulator-5554"), ServerMode::Auto).await?;
+    ///     assert!(matches!(device.server_mode(), ServerMode::Auto | ServerMode::AtxAgent | ServerMode::Direct));
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn connect_with_mode(serial: Option<&str>, mode: ServerMode) -> Result<Self> {
         info!("正在连接到设备 (模式: {:?})", mode);
 
@@ -800,26 +860,99 @@ impl Device {
     }
 
     /// 获取设备序列号
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let serial = device.serial();
+    ///     assert!(!serial.is_empty());
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn serial(&self) -> &str {
         &self.serial
     }
 
     /// 获取服务器模式
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::{Device, ServerMode};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let mode = device.server_mode();
+    ///     assert!(matches!(mode, ServerMode::Auto | ServerMode::AtxAgent | ServerMode::Direct));
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn server_mode(&self) -> ServerMode {
         self.server_mode
     }
 
     /// 获取 ADB 客户端引用
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let adb_ref = device.adb_client();
+    ///     assert!(Arc::strong_count(adb_ref) >= 1);
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn adb_client(&self) -> &Arc<AdbClient> {
         &self.adb_client
     }
 
     /// 获取 JSON-RPC 客户端引用
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let rpc_ref = device.jsonrpc_client();
+    ///     assert!(Arc::strong_count(rpc_ref) >= 1);
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn jsonrpc_client(&self) -> &Arc<JsonRpcClient> {
         &self.jsonrpc_client
     }
 
     /// 获取设置引用
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let settings_ref = device.settings();
+    ///     let settings = settings_ref.read().unwrap();
+    ///     assert!(settings.wait_timeout.as_secs() > 0);
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn settings(&self) -> &Arc<RwLock<Settings>> {
         &self.settings
     }
@@ -882,6 +1015,20 @@ impl Device {
     /// # 返回
     ///
     /// 返回当前配置的轮询间隔时间
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let interval = device.get_polling_interval();
+    ///     assert!(interval.as_millis() > 0);
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn get_polling_interval(&self) -> Duration {
         let settings = self.settings.read().unwrap();
         settings.polling_interval

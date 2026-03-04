@@ -6,6 +6,16 @@
 ///
 /// 包含 Android 系统中常用的物理按键和软键。
 /// 每个按键都对应一个 Android KeyEvent 键码。
+///
+/// # Examples
+///
+/// ```
+/// use uiautomator::Key;
+///
+/// let keys = [Key::Home, Key::Back, Key::Enter];
+/// let keycodes: Vec<u32> = keys.iter().map(Key::to_keycode).collect();
+/// assert_eq!(keycodes, vec![3, 4, 66]);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Key {
     /// Home 键 - 返回主屏幕

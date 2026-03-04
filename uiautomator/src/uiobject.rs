@@ -8,6 +8,20 @@ use std::sync::Arc;
 use std::time::Duration;
 
 /// UI 对象，代表一个定位到的 UI 元素
+///
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator::{Device, Selector};
+///
+/// #[tokio::main]
+/// async fn main() -> uiautomator::Result<()> {
+///     let device = Device::connect(None).await?;
+///     let element = device.find(Selector::new().text("Settings"));
+///     assert!(element.exists(None).await?);
+///     Ok(())
+/// }
+/// ```
 #[derive(Debug, Clone)]
 pub struct UiObject {
     device: Arc<Device>,
@@ -21,6 +35,23 @@ impl UiObject {
     ///
     /// * `device` - 设备引用
     /// * `selector` - 元素选择器
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use uiautomator::{Device, Selector, UiObject};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Arc::new(Device::connect(None).await?);
+    ///     let selector = Selector::new().text("Settings");
+    ///     let object = UiObject::new(device, selector);
+    ///     let params = object.selector().to_params();
+    ///     assert_eq!(params["text"], "Settings");
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn new(device: Arc<Device>, selector: Selector) -> Self {
         Self { device, selector }
     }
@@ -147,11 +178,42 @@ impl UiObject {
     }
 
     /// 获取选择器的引用
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::{Device, Selector};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let object = device.find(Selector::new().text("Settings"));
+    ///     let selector = object.selector();
+    ///     let params = selector.to_params();
+    ///     assert_eq!(params["text"], "Settings");
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn selector(&self) -> &Selector {
         &self.selector
     }
 
     /// 获取设备的引用
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::{Device, Selector};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     let object = device.find(Selector::new().text("Settings"));
+    ///     let parent = object.device();
+    ///     assert!(!parent.serial().is_empty());
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn device(&self) -> &Arc<Device> {
         &self.device
     }

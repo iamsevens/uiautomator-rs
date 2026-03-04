@@ -86,6 +86,15 @@ use std::time::Duration;
 use thiserror::Error;
 
 /// 库的错误类型
+///
+/// # Examples
+///
+/// ```
+/// use uiautomator::Error;
+///
+/// let err = Error::InvalidArgument("x must be >= 0".to_string());
+/// assert_eq!(err.category(), "Other");
+/// ```
 #[derive(Debug, Error)]
 pub enum Error {
     // ========== 设备相关错误 ==========
@@ -340,6 +349,23 @@ impl Error {
 }
 
 /// 库的 Result 类型别名
+///
+/// # Examples
+///
+/// ```
+/// use uiautomator::{Error, Result};
+///
+/// fn validate_positive(v: i32) -> Result<i32> {
+///     if v > 0 {
+///         Ok(v)
+///     } else {
+///         Err(Error::InvalidArgument("v must be positive".to_string()))
+///     }
+/// }
+///
+/// assert!(validate_positive(1).is_ok());
+/// assert!(validate_positive(0).is_err());
+/// ```
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(test)]

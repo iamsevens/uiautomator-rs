@@ -13,6 +13,18 @@ use std::time::Duration;
 /// ADB 客户端
 ///
 /// 封装 adb_client 库,提供与 Android 设备通信的功能
+/// # Examples
+///
+/// ```no_run
+/// use uiautomator::adb::AdbClient;
+///
+/// #[tokio::main]
+/// async fn main() -> uiautomator::Result<()> {
+///     let client = AdbClient::new().await?;
+///     let _devices = client.devices().await?;
+///     Ok(())
+/// }
+/// ```
 #[derive(Debug)]
 pub struct AdbClient {
     // 使用 () 作为占位符,因为新版本的 adb_client 使用不同的连接模型
