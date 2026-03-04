@@ -94,6 +94,38 @@ function Resolve-Workflow {
     return $workflow
 }
 
+function Ensure-NoActiveRun {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$WorkflowName
+    )
+
+    $runs = Invoke-GhJson -Arguments @(
+        "run", "list",
+        "--repo", $Repo,
+        "--workflow", $WorkflowName,
+        "--limit", "20",
+        "--json", "databaseId,status,conclusion,url,createdAt,event,headBranch"
+    )
+
+    if (-not $runs) {
+        return
+    }
+
+    $active = $runs |
+        Where-Object {
+            $_.event -eq "workflow_dispatch" -and
+            $_.headBranch -eq $refBranch -and
+            $_.status -ne "completed"
+        } |
+        Sort-Object { ([datetime]$_.createdAt).ToUniversalTime() } -Descending |
+        Select-Object -First 1
+
+    if ($active) {
+        throw "workflow '$WorkflowName' already has an active run on branch '$refBranch': $($active.url)"
+    }
+}
+
 function Dispatch-Workflow {
     param(
         [Parameter(Mandatory = $true)]
@@ -236,6 +268,7 @@ if ($ExpectedAndroidMajor -gt 0) {
 $targetsJson = "[{{{0}}}]" -f ($targetJsonParts -join ",")
 
 Write-Host "Dispatching Install Smoke..."
+Ensure-NoActiveRun -WorkflowName $smokeWorkflow.name
 $smokeDispatchedAt = [datetime]::UtcNow
 Dispatch-Workflow -WorkflowId ([string]$smokeWorkflow.id) -Inputs @{
     serial              = $Serial
@@ -251,6 +284,7 @@ if ($smokeFinal.conclusion -ne "success") {
 }
 
 Write-Host "Dispatching Device Regression Matrix..."
+Ensure-NoActiveRun -WorkflowName $matrixWorkflow.name
 $matrixDispatchedAt = [datetime]::UtcNow
 Dispatch-Workflow -WorkflowId ([string]$matrixWorkflow.id) -Inputs @{
     targets_json        = $targetsJson

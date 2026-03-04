@@ -69,6 +69,22 @@ pub struct Device {
 }
 
 impl Device {
+    fn is_likely_device_offline_text(text: &str) -> bool {
+        let lower = text.to_lowercase();
+        [
+            "device offline",
+            "is offline",
+            "device not found",
+            "closed",
+            "broken pipe",
+            "transport error",
+            "device unauthorized",
+            "unauthorized",
+        ]
+        .iter()
+        .any(|marker| lower.contains(marker))
+    }
+
     fn atx_agent_init_guidance(serial: &str) -> String {
         format!(
             "请先初始化设备端 ATX-Agent：`uiautomator init --serial {} --force`。\
@@ -260,13 +276,19 @@ impl Device {
             AtxAgentClient::new(serial.clone(), adb_client.clone())
                 .await
                 .map_err(|e| {
+                    let guidance = Self::atx_agent_init_guidance(&serial);
                     warn!(
                         "创建 ATX-Agent 客户端失败 (serial={}): {}. {}",
-                        serial,
-                        e,
-                        Self::atx_agent_init_guidance(&serial)
+                        serial, e, guidance
                     );
-                    Error::DeviceOffline(serial.clone())
+                    if Self::is_likely_device_offline_text(&e.to_string()) {
+                        Error::DeviceOffline(serial.clone())
+                    } else {
+                        Error::DeviceConnection(format!(
+                            "创建 ATX-Agent 客户端失败: {}。{}",
+                            e, guidance
+                        ))
+                    }
                 })?,
         );
 
@@ -1475,6 +1497,22 @@ impl Device {
         (exit_code, cleaned_output)
     }
 
+    fn pm_path_output_has_package(output: &str) -> bool {
+        output
+            .lines()
+            .map(str::trim_start)
+            .any(|line| line.starts_with("package:"))
+    }
+
+    async fn is_package_installed(&self, package: &str) -> Result<bool> {
+        let command = format!("pm path {}", package);
+        let output = self
+            .adb_client
+            .shell(&self.serial, &command, Some(Duration::from_secs(10)))
+            .await?;
+        Ok(Self::pm_path_output_has_package(&output))
+    }
+
     /// 判断 am start 输出中的某一行是否为明确失败信号。
     fn is_app_start_failure_line(line: &str) -> bool {
         let trimmed = line.trim();
@@ -1651,6 +1689,10 @@ impl Device {
     pub async fn app_start(&self, package: &str, activity: Option<&str>) -> Result<()> {
         debug!("启动应用: {} {:?}", package, activity);
         const APP_START_EXIT_MARKER: &str = "__U2_APP_START_EXIT_CODE__:";
+
+        if activity.is_some() && !self.is_package_installed(package).await? {
+            return Err(Error::AppNotInstalled(package.to_string()));
+        }
 
         // 构建 am start 命令
         let am_start_command = match activity {
@@ -2156,6 +2198,29 @@ mod tests {
             cleaned,
             "Starting: Intent { cmp=com.android.settings/.Settings }"
         );
+    }
+
+    #[test]
+    fn test_pm_path_output_has_package() {
+        assert!(Device::pm_path_output_has_package(
+            "package:/data/app/~~abc/com.example.app/base.apk"
+        ));
+        assert!(!Device::pm_path_output_has_package(
+            "Error: package com.example.app was not found"
+        ));
+    }
+
+    #[test]
+    fn test_is_likely_device_offline_text_detection() {
+        assert!(Device::is_likely_device_offline_text(
+            "adb: error: device offline"
+        ));
+        assert!(Device::is_likely_device_offline_text(
+            "error: device unauthorized. Please check the confirmation dialog on your device."
+        ));
+        assert!(!Device::is_likely_device_offline_text(
+            "adb forward failed: cannot bind listener socket"
+        ));
     }
 
     #[test]

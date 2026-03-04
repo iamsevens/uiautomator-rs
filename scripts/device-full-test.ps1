@@ -460,6 +460,50 @@ function Install-TestAppWithFallback {
     throw "test-app install failed on $Serial`n$text"
 }
 
+function Get-AtxAgentProcessStatus {
+    $pidResult = Invoke-Adb -CmdArgs @("shell", "pidof", "atx-agent") -AllowFailure
+    $pidText = $pidResult.Output.Trim()
+    if ($pidResult.ExitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($pidText)) {
+        return [PSCustomObject]@{
+            Running = $true
+            Detail  = "pidof=$pidText"
+        }
+    }
+
+    $psCandidates = @(
+        @("shell", "ps", "-A"),
+        @("shell", "ps")
+    )
+
+    foreach ($candidate in $psCandidates) {
+        $psResult = Invoke-Adb -CmdArgs $candidate -AllowFailure
+        if ($psResult.ExitCode -ne 0) {
+            continue
+        }
+
+        foreach ($line in ($psResult.Output -split "`r?`n")) {
+            if ($line -match '(^|\s)(atx-agent|/data/local/tmp/atx-agent)(\s|$)') {
+                return [PSCustomObject]@{
+                    Running = $true
+                    Detail  = "ps-match: $($line.Trim())"
+                }
+            }
+        }
+    }
+
+    $pidDetail = if ($pidResult.ExitCode -eq 0) {
+        "pidof returned empty"
+    }
+    else {
+        "pidof exit=$($pidResult.ExitCode)"
+    }
+
+    return [PSCustomObject]@{
+        Running = $false
+        Detail  = $pidDetail
+    }
+}
+
 try {
     $preRunArtifacts = Move-RootDebugXmlArtifacts -DestinationDir $debugDumpDir
     if ($preRunArtifacts.Count -gt 0) {
@@ -577,9 +621,9 @@ try {
             throw "runtime verify failed: /data/local/tmp/atx-agent missing after init"
         }
 
-        $atxPid = Invoke-Adb -CmdArgs @("shell", "pidof", "atx-agent") -AllowFailure
-        if ([string]::IsNullOrWhiteSpace($atxPid.Output.Trim())) {
-            throw "runtime verify failed: atx-agent process not running after init"
+        $atxProcess = Get-AtxAgentProcessStatus
+        if (-not $atxProcess.Running) {
+            throw "runtime verify failed: atx-agent process not running after init ($($atxProcess.Detail))"
         }
 
         $u2MainPkg = Invoke-Adb -CmdArgs @("shell", "pm", "path", "com.github.uiautomator") -AllowFailure
