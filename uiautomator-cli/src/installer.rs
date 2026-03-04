@@ -260,7 +260,7 @@ impl Installer {
         client: &uiautomator::atx_agent::AtxAgentClient,
         timeout: std::time::Duration,
     ) -> Result<()> {
-        match client.wait_for_atx_agent_ready(Some(timeout)).await {
+        match client.wait_for_atx_agent_ready(timeout).await {
             Ok(()) => Ok(()),
             Err(wait_err) => match client.check_atx_agent_status().await {
                 Ok(true) => Err(anyhow!("服务进程存在，但健康检查未就绪: {}", wait_err)),
