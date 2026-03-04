@@ -141,6 +141,20 @@ impl AtxAgentClient {
     /// # 返回
     ///
     /// 如果 atx-agent 可用返回 true，否则返回 false
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// let available = client.is_available().await;
+    /// println!("available: {available}");
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn is_available(&self) -> bool {
         debug!("检查 ATX-Agent 是否可用");
 
@@ -172,6 +186,20 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果请求失败或解析失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// let version = client.version().await?;
+    /// assert!(!version.is_empty());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn version(&self) -> Result<String> {
         debug!("获取 ATX-Agent 版本");
 
@@ -196,6 +224,20 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果请求失败或解析失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// let info = client.device_info().await?;
+    /// println!("{} {}", info.brand, info.model);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn device_info(&self) -> Result<AtxDeviceInfo> {
         debug!("获取设备信息");
 
@@ -210,6 +252,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果请求失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.start_uiautomator().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn start_uiautomator(&self) -> Result<()> {
         info!("启动 uiautomator2 服务");
 
@@ -224,6 +279,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果请求失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.stop_uiautomator().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn stop_uiautomator(&self) -> Result<()> {
         info!("停止 uiautomator2 服务");
 
@@ -248,6 +316,20 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果请求失败或解析失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// let status = client.uiautomator_status().await?;
+    /// println!("running: {}", status.running);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn uiautomator_status(&self) -> Result<UiAutomatorStatus> {
         debug!("检查 uiautomator2 服务状态");
 
@@ -268,6 +350,20 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果请求失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// let xml = client.dump_hierarchy().await?;
+    /// assert!(!xml.is_empty());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn dump_hierarchy(&self) -> Result<String> {
         debug!("获取 UI 层级结构");
 
@@ -299,6 +395,24 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果请求失败或返回错误响应，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use serde_json::json;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// let sdk: i32 = client
+    ///     .forward_jsonrpc("deviceInfo", json!([]), 1)
+    ///     .await
+    ///     .unwrap_or_default();
+    /// println!("sdk: {sdk}");
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn forward_jsonrpc<T: serde::de::DeserializeOwned>(
         &self,
         method: &str,
@@ -514,6 +628,22 @@ mod tests {
 // ============================================================================
 
 /// ATX-Agent 设备信息
+///
+/// # Examples
+///
+/// ```
+/// use uiautomator::atx_agent::AtxDeviceInfo;
+///
+/// let info = AtxDeviceInfo {
+///     udid: "demo-udid".to_string(),
+///     serial: "emulator-5554".to_string(),
+///     brand: "google".to_string(),
+///     model: "sdk_gphone64_x86_64".to_string(),
+///     hwaddr: "00:00:00:00:00:00".to_string(),
+///     agent_version: "0.10.0".to_string(),
+/// };
+/// assert_eq!(info.serial, "emulator-5554");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AtxDeviceInfo {
     /// 设备唯一标识符
@@ -532,6 +662,15 @@ pub struct AtxDeviceInfo {
 }
 
 /// UiAutomator 服务状态
+///
+/// # Examples
+///
+/// ```
+/// use uiautomator::atx_agent::UiAutomatorStatus;
+///
+/// let status = UiAutomatorStatus { running: true };
+/// assert!(status.running);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UiAutomatorStatus {
     /// 服务是否正在运行
@@ -881,6 +1020,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果推送失败或设置权限失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.push_atx_agent().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn push_atx_agent(&self) -> Result<()> {
         #[cfg(feature = "atx-agent-install")]
         {
@@ -922,6 +1074,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果安装失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.install_uiautomator_apks().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn install_uiautomator_apks(&self) -> Result<()> {
         info!("安装 UiAutomator APK");
 
@@ -1015,6 +1180,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果安装过程中出现错误，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.install(false).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn install(&self, force: bool) -> Result<()> {
         info!("开始安装 ATX-Agent");
 
@@ -1050,6 +1228,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果启动失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.start_atx_agent().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn start_atx_agent(&self) -> Result<()> {
         info!("启动 atx-agent 守护进程");
 
@@ -1089,6 +1280,22 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果超时仍未就绪，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use std::time::Duration;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client
+    ///     .wait_for_atx_agent_ready(Some(Duration::from_secs(15)))
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn wait_for_atx_agent_ready<T>(&self, timeout: T) -> Result<()>
     where
         T: Into<Option<Duration>>,
@@ -1123,6 +1330,20 @@ impl AtxAgentClient {
     /// # 返回
     ///
     /// 返回服务是否正在运行
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// let running = client.check_atx_agent_status().await?;
+    /// println!("running: {running}");
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn check_atx_agent_status(&self) -> Result<bool> {
         debug!("检查 atx-agent 服务状态");
 
@@ -1158,6 +1379,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果停止失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.stop_atx_agent().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn stop_atx_agent(&self) -> Result<()> {
         info!("停止 atx-agent 服务");
 
@@ -1205,6 +1439,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果重启失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.restart_atx_agent().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn restart_atx_agent(&self) -> Result<()> {
         info!("重启 atx-agent 服务");
 
@@ -1232,6 +1479,19 @@ impl AtxAgentClient {
     /// # 错误
     ///
     /// 如果启动失败，返回错误
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use std::sync::Arc;
+    /// # use uiautomator::{AdbClient, AtxAgentClient};
+    /// # async fn example() -> uiautomator::Result<()> {
+    /// let adb = AdbClient::new().await?;
+    /// let client = AtxAgentClient::new("emulator-5554".to_string(), Arc::new(adb)).await?;
+    /// client.ensure_atx_agent_running().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn ensure_atx_agent_running(&self) -> Result<()> {
         debug!("确保 atx-agent 服务运行");
 

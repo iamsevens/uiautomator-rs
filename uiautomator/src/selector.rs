@@ -185,6 +185,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `text` - 文本应包含的子串
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().text_contains("Set");
+    /// ```
     pub fn text_contains(mut self, text: impl Into<String>) -> Self {
         self.text_contains = Some(text.into());
         self
@@ -195,6 +203,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `text` - 文本应以此开头
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().text_starts_with("Set");
+    /// ```
     pub fn text_starts_with(mut self, text: impl Into<String>) -> Self {
         self.text_starts_with = Some(text.into());
         self
@@ -205,6 +221,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `pattern` - 正则表达式模式
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().text_matches("Set.*");
+    /// ```
     pub fn text_matches(mut self, pattern: impl Into<String>) -> Self {
         self.text_matches = Some(pattern.into());
         self
@@ -251,6 +275,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `desc` - 内容描述
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().description("Submit button");
+    /// ```
     pub fn description(mut self, desc: impl Into<String>) -> Self {
         self.description = Some(desc.into());
         self
@@ -261,6 +293,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `desc` - 描述应包含的子串
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().description_contains("Submit");
+    /// ```
     pub fn description_contains(mut self, desc: impl Into<String>) -> Self {
         self.description_contains = Some(desc.into());
         self
@@ -271,6 +311,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `name` - 应用包名
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().package_name("com.example.app");
+    /// ```
     pub fn package_name(mut self, name: impl Into<String>) -> Self {
         self.package_name = Some(name.into());
         self
@@ -281,6 +329,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `clickable` - true 表示只匹配可点击元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().clickable(true);
+    /// ```
     pub fn clickable(mut self, clickable: bool) -> Self {
         self.clickable = Some(clickable);
         self
@@ -291,6 +347,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `enabled` - true 表示只匹配启用的元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().enabled(true);
+    /// ```
     pub fn enabled(mut self, enabled: bool) -> Self {
         self.enabled = Some(enabled);
         self
@@ -301,6 +365,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `focusable` - true 表示只匹配可获得焦点的元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().focusable(true);
+    /// ```
     pub fn focusable(mut self, focusable: bool) -> Self {
         self.focusable = Some(focusable);
         self
@@ -311,6 +383,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `scrollable` - true 表示只匹配可滚动元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().scrollable(true);
+    /// ```
     pub fn scrollable(mut self, scrollable: bool) -> Self {
         self.scrollable = Some(scrollable);
         self
@@ -345,6 +425,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `checkable` - true 表示只匹配可勾选元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().checkable(true);
+    /// ```
     pub fn checkable(mut self, checkable: bool) -> Self {
         self.checkable = Some(checkable);
         self
@@ -355,6 +443,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `checked` - true 表示只匹配已勾选元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().checked(true);
+    /// ```
     pub fn checked(mut self, checked: bool) -> Self {
         self.checked = Some(checked);
         self
@@ -365,6 +461,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `long_clickable` - true 表示只匹配可长按元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().long_clickable(true);
+    /// ```
     pub fn long_clickable(mut self, long_clickable: bool) -> Self {
         self.long_clickable = Some(long_clickable);
         self
@@ -375,6 +479,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `focused` - true 表示只匹配已获得焦点的元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().focused(true);
+    /// ```
     pub fn focused(mut self, focused: bool) -> Self {
         self.focused = Some(focused);
         self
@@ -385,6 +497,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `selected` - true 表示只匹配已选中元素
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().selected(true);
+    /// ```
     pub fn selected(mut self, selected: bool) -> Self {
         self.selected = Some(selected);
         self
@@ -395,6 +515,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `pattern` - 正则表达式模式
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().class_name_matches(".*Button$");
+    /// ```
     pub fn class_name_matches(mut self, pattern: impl Into<String>) -> Self {
         self.class_name_matches = Some(pattern.into());
         self
@@ -405,6 +533,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `pattern` - 正则表达式模式
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().description_matches("Submit.*");
+    /// ```
     pub fn description_matches(mut self, pattern: impl Into<String>) -> Self {
         self.description_matches = Some(pattern.into());
         self
@@ -415,6 +551,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `text` - 描述应以此开头
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().description_starts_with("Submit");
+    /// ```
     pub fn description_starts_with(mut self, text: impl Into<String>) -> Self {
         self.description_starts_with = Some(text.into());
         self
@@ -425,6 +569,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `pattern` - 正则表达式模式
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().package_name_matches(r"com\\.example\\..*");
+    /// ```
     pub fn package_name_matches(mut self, pattern: impl Into<String>) -> Self {
         self.package_name_matches = Some(pattern.into());
         self
@@ -435,6 +587,14 @@ impl Selector {
     /// # 参数
     ///
     /// * `pattern` - 正则表达式模式
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new().resource_id_matches(".*:id/btn_.*");
+    /// ```
     pub fn resource_id_matches(mut self, pattern: impl Into<String>) -> Self {
         self.resource_id_matches = Some(pattern.into());
         self
@@ -449,6 +609,16 @@ impl Selector {
     /// # 参数
     ///
     /// * `index` - 元素在父容器中的索引（从 0 开始）
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new()
+    ///     .class_name("android.widget.TextView")
+    ///     .index(2);
+    /// ```
     pub fn index(mut self, index: u32) -> Self {
         self.index = Some(index);
         self
@@ -459,6 +629,16 @@ impl Selector {
     /// # 参数
     ///
     /// * `child_selector` - 子元素的选择条件
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new()
+    ///     .resource_id("com.example:id/list")
+    ///     .child(Selector::new().text("Item"));
+    /// ```
     pub fn child(mut self, child_selector: Selector) -> Self {
         self.child_or_sibling.push("child".to_string());
         self.child_or_sibling_selector
@@ -471,6 +651,16 @@ impl Selector {
     /// # 参数
     ///
     /// * `sibling_selector` - 兄弟元素的选择条件
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let selector = Selector::new()
+    ///     .text("Username")
+    ///     .sibling(Selector::new().class_name("android.widget.EditText"));
+    /// ```
     pub fn sibling(mut self, sibling_selector: Selector) -> Self {
         self.child_or_sibling.push("sibling".to_string());
         self.child_or_sibling_selector
@@ -486,6 +676,21 @@ impl Selector {
     /// # 返回
     ///
     /// JSON 对象，包含所有已设置的选择条件和 mask 字段
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Selector;
+    ///
+    /// let params = Selector::new()
+    ///     .text("Settings")
+    ///     .clickable(true)
+    ///     .to_params();
+    ///
+    /// assert_eq!(params["text"], "Settings");
+    /// assert_eq!(params["clickable"], true);
+    /// assert!(params.get("mask").is_some());
+    /// ```
     pub fn to_params(&self) -> Value {
         let mut params = serde_json::Map::new();
         let mut mask: u32 = 0;
