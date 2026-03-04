@@ -6,6 +6,16 @@
 
 ## [未发布]
 
+### 说明
+- 暂无未发布变更。
+
+## [0.1.2] - 2026-03-05
+
+### 修复
+- 修复 `cargo publish --dry-run` 场景下的依赖兼容问题：
+  - `Installer::wait_service_ready_with_fallback` 改为向 `wait_for_atx_agent_ready` 传入 `Duration`，兼容已发布的 `uiautomator` API 签名。
+  - 避免 `Option<Duration>` 调用在 crates.io 依赖解析路径下触发编译失败。
+
 ### 改进
 - 调整 crate 打包清单：发布包不再包含 `tests/**`，减小包体积并降低发布噪音。
 - 完善发布与仓库文档：
