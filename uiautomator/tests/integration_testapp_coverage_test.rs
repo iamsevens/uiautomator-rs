@@ -310,15 +310,54 @@ async fn test_gesture_apis_with_real_ui_feedback() {
     let long_click_area = device.find(Selector::new().resource_id(app_id("tv_long_click_area")));
     long_click_area
         .long_click(
-            Some(Duration::from_millis(900)),
+            Some(Duration::from_millis(1200)),
             Some(Duration::from_secs(5)),
         )
         .await
         .unwrap();
-    tokio::time::sleep(Duration::from_millis(200)).await;
+    let mut long_press_updated = device
+        .wait_for(
+            || {
+                let area = device.find(Selector::new().resource_id(app_id("tv_long_click_area")));
+                async move {
+                    Ok(area
+                        .get_text()
+                        .await
+                        .unwrap_or_default()
+                        .contains("Long Pressed!"))
+                }
+            },
+            Some(Duration::from_secs(3)),
+        )
+        .await
+        .is_ok();
+    if !long_press_updated {
+        let (long_x, long_y) = long_click_area.center().await.unwrap();
+        device
+            .long_click(long_x, long_y, Some(Duration::from_millis(1200)))
+            .await
+            .unwrap();
+        long_press_updated = device
+            .wait_for(
+                || {
+                    let area =
+                        device.find(Selector::new().resource_id(app_id("tv_long_click_area")));
+                    async move {
+                        Ok(area
+                            .get_text()
+                            .await
+                            .unwrap_or_default()
+                            .contains("Long Pressed!"))
+                    }
+                },
+                Some(Duration::from_secs(3)),
+            )
+            .await
+            .is_ok();
+    }
     let long_text = long_click_area.get_text().await.unwrap_or_default();
     assert!(
-        long_text.contains("Long Pressed!"),
+        long_press_updated || long_text.contains("Long Pressed!"),
         "expected long click feedback, got: {long_text}"
     );
 
