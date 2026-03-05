@@ -4,7 +4,11 @@ param(
 
     [string]$LdplayerStartCommand = "",
 
+    [string]$LdplayerStopCommand = "",
+
     [string]$MumuStartCommand = "",
+
+    [string]$MumuStopCommand = "",
 
     [string]$MumuConnectEndpoints = "",
 
@@ -27,8 +31,38 @@ if ([string]::IsNullOrWhiteSpace($LdplayerStartCommand) -and -not [string]::IsNu
     $LdplayerStartCommand = $env:LDPLAYER_START_CMD
 }
 
+if ([string]::IsNullOrWhiteSpace($LdplayerStopCommand) -and -not [string]::IsNullOrWhiteSpace($env:LDPLAYER_STOP_CMD)) {
+    $LdplayerStopCommand = $env:LDPLAYER_STOP_CMD
+}
+
 if ([string]::IsNullOrWhiteSpace($MumuStartCommand) -and -not [string]::IsNullOrWhiteSpace($env:MUMU_START_CMD)) {
     $MumuStartCommand = $env:MUMU_START_CMD
+}
+
+if ([string]::IsNullOrWhiteSpace($MumuStopCommand) -and -not [string]::IsNullOrWhiteSpace($env:MUMU_STOP_CMD)) {
+    $MumuStopCommand = $env:MUMU_STOP_CMD
+}
+
+$defaultMumuManagerPath = "C:\Program Files\Netease\MuMu\nx_main\MuMuManager.exe"
+if (-not [string]::IsNullOrWhiteSpace($MumuStartCommand) -and $MumuStartCommand -match '(?i)MuMuNxMain\.exe' -and (Test-Path $defaultMumuManagerPath)) {
+    Write-Host "[MuMu] normalize start command from MuMuNxMain to MuMuManager launch."
+    $MumuStartCommand = "& '$defaultMumuManagerPath' control -v 0 launch"
+}
+if ([string]::IsNullOrWhiteSpace($MumuStopCommand) -and (Test-Path $defaultMumuManagerPath)) {
+    $MumuStopCommand = "& '$defaultMumuManagerPath' control -v 0 shutdown"
+}
+
+if ([string]::IsNullOrWhiteSpace($LdplayerStopCommand)) {
+    if (-not [string]::IsNullOrWhiteSpace($LdplayerStartCommand) -and $LdplayerStartCommand -match "(?i)'([^']*ldconsole\.exe)'") {
+        $ldconsolePath = $matches[1]
+        $LdplayerStopCommand = "& '$ldconsolePath' quit --index 0"
+    }
+    else {
+        $defaultLdconsolePath = "D:\leidian\LDPlayer9\ldconsole.exe"
+        if (Test-Path $defaultLdconsolePath) {
+            $LdplayerStopCommand = "& '$defaultLdconsolePath' quit --index 0"
+        }
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($MumuConnectEndpoints)) {
@@ -79,7 +113,8 @@ function Invoke-AdbRaw {
 function Start-LauncherCommand {
     param(
         [string]$Name,
-        [string]$Command
+        [string]$Command,
+        [string]$StopCommand = ""
     )
 
     if ([string]::IsNullOrWhiteSpace($Command)) {
@@ -95,9 +130,10 @@ function Start-LauncherCommand {
         -PassThru
     Write-Host "[$Name] launcher pid: $($proc.Id)"
     return [PSCustomObject]@{
-        Name    = $Name
-        Pid     = $proc.Id
-        Command = $Command
+        Name        = $Name
+        Pid         = $proc.Id
+        Command     = $Command
+        StopCommand = $StopCommand
     }
 }
 
@@ -176,13 +212,13 @@ if ($shouldHandleEmulator) {
     }
     else {
         if ($isTcpSerial) {
-            $launcher = Start-LauncherCommand -Name "MuMu" -Command $MumuStartCommand
+            $launcher = Start-LauncherCommand -Name "MuMu" -Command $MumuStartCommand -StopCommand $MumuStopCommand
             if ($null -ne $launcher) {
                 $startedLaunchers.Add($launcher)
             }
         }
         elseif ($isEmulatorSerial) {
-            $launcher = Start-LauncherCommand -Name "LDPlayer" -Command $LdplayerStartCommand
+            $launcher = Start-LauncherCommand -Name "LDPlayer" -Command $LdplayerStartCommand -StopCommand $LdplayerStopCommand
             if ($null -ne $launcher) {
                 $startedLaunchers.Add($launcher)
             }

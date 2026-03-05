@@ -20,7 +20,11 @@ param(
 
     [string]$LdplayerStartCommand = "",
 
+    [string]$LdplayerStopCommand = "",
+
     [string]$MumuStartCommand = "",
+
+    [string]$MumuStopCommand = "",
 
     [string]$MumuConnectEndpoints = "",
 
@@ -345,6 +349,19 @@ function Stop-StartedLaunchers {
         }
 
         foreach ($launcher in @($state.launchers)) {
+            $name = if ($launcher.PSObject.Properties.Name -contains "Name") { [string]$launcher.Name } else { "launcher" }
+
+            $stopCommand = if ($launcher.PSObject.Properties.Name -contains "StopCommand") { [string]$launcher.StopCommand } else { "" }
+            if (-not [string]::IsNullOrWhiteSpace($stopCommand)) {
+                Write-Host "[$name] stop command: $stopCommand"
+                $stopOutput = & $PowerShellExe -NoProfile -ExecutionPolicy Bypass -Command $stopCommand 2>&1
+                $stopExitCode = $LASTEXITCODE
+                if ($stopExitCode -ne 0) {
+                    $stopText = ($stopOutput | ForEach-Object { $_.ToString() }) -join "`n"
+                    Write-Host "::warning::[$name] stop command failed (exit=$stopExitCode): $stopText"
+                }
+            }
+
             $pidText = if ($launcher.PSObject.Properties.Name -contains "Pid") { [string]$launcher.Pid } else { "" }
             if ([string]::IsNullOrWhiteSpace($pidText)) {
                 continue
@@ -355,7 +372,6 @@ function Stop-StartedLaunchers {
                 continue
             }
 
-            $name = if ($launcher.PSObject.Properties.Name -contains "Name") { [string]$launcher.Name } else { "launcher" }
             $proc = Get-Process -Id $launcherPid -ErrorAction SilentlyContinue
             if ($null -eq $proc) {
                 Write-Host "[$name] pid=$launcherPid already exited"
@@ -424,8 +440,14 @@ try {
         if (-not [string]::IsNullOrWhiteSpace($LdplayerStartCommand)) {
             $ensureArgs["LdplayerStartCommand"] = $LdplayerStartCommand
         }
+        if (-not [string]::IsNullOrWhiteSpace($LdplayerStopCommand)) {
+            $ensureArgs["LdplayerStopCommand"] = $LdplayerStopCommand
+        }
         if (-not [string]::IsNullOrWhiteSpace($MumuStartCommand)) {
             $ensureArgs["MumuStartCommand"] = $MumuStartCommand
+        }
+        if (-not [string]::IsNullOrWhiteSpace($MumuStopCommand)) {
+            $ensureArgs["MumuStopCommand"] = $MumuStopCommand
         }
         if (-not [string]::IsNullOrWhiteSpace($MumuConnectEndpoints)) {
             $ensureArgs["MumuConnectEndpoints"] = $MumuConnectEndpoints
