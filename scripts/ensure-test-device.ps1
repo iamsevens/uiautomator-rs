@@ -46,12 +46,14 @@ if ([string]::IsNullOrWhiteSpace($MumuStopCommand) -and -not [string]::IsNullOrW
 }
 
 $defaultMumuManagerPath = "C:\Program Files\Netease\MuMu\nx_main\MuMuManager.exe"
-if (-not [string]::IsNullOrWhiteSpace($MumuStartCommand) -and $MumuStartCommand -match '(?i)MuMuNxMain\.exe' -and (Test-Path $defaultMumuManagerPath)) {
-    Write-Host "[MuMu] normalize start command from MuMuNxMain to MuMuManager launch."
-    $MumuStartCommand = "& '$defaultMumuManagerPath' control -v 0 launch"
-}
-if ([string]::IsNullOrWhiteSpace($MumuStopCommand) -and (Test-Path $defaultMumuManagerPath)) {
-    $MumuStopCommand = "& '$defaultMumuManagerPath' control -v 0 shutdown"
+if ($isTcpSerial) {
+    if (-not [string]::IsNullOrWhiteSpace($MumuStartCommand) -and $MumuStartCommand -match '(?i)MuMuNxMain\.exe' -and (Test-Path $defaultMumuManagerPath)) {
+        Write-Host "[MuMu] normalize start command from MuMuNxMain to MuMuManager launch."
+        $MumuStartCommand = "& '$defaultMumuManagerPath' control -v 0 launch"
+    }
+    if ([string]::IsNullOrWhiteSpace($MumuStopCommand) -and (Test-Path $defaultMumuManagerPath)) {
+        $MumuStopCommand = "& '$defaultMumuManagerPath' control -v 0 shutdown"
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($LdplayerStopCommand)) {
@@ -77,6 +79,56 @@ if ([string]::IsNullOrWhiteSpace($MumuConnectEndpoints)) {
     else {
         $MumuConnectEndpoints = ""
     }
+}
+
+function Resolve-LdplayerConsolePath {
+    param([string]$StartCommand)
+
+    if (-not [string]::IsNullOrWhiteSpace($StartCommand) -and $StartCommand -match "(?i)'([^']*ldconsole\.exe)'") {
+        return $matches[1]
+    }
+
+    $defaultLdconsolePath = "D:\leidian\LDPlayer9\ldconsole.exe"
+    if (Test-Path $defaultLdconsolePath) {
+        return $defaultLdconsolePath
+    }
+
+    return ""
+}
+
+function Resolve-LdplayerIndex {
+    param([string]$StartCommand)
+
+    if (-not [string]::IsNullOrWhiteSpace($StartCommand) -and $StartCommand -match '(?i)--index\s+(\d+)') {
+        return [int]$matches[1]
+    }
+
+    return 0
+}
+
+function Wait-LdplayerRunning {
+    param(
+        [string]$LdconsolePath,
+        [int]$Index = 0,
+        [int]$TimeoutSeconds = 75,
+        [int]$PollIntervalSeconds = 3
+    )
+
+    if ([string]::IsNullOrWhiteSpace($LdconsolePath) -or -not (Test-Path $LdconsolePath)) {
+        return $false
+    }
+
+    $deadline = (Get-Date).AddSeconds([Math]::Max($TimeoutSeconds, 1))
+    while ((Get-Date) -lt $deadline) {
+        $res = & $LdconsolePath isrunning --index $Index 2>&1
+        $statusText = (($res | ForEach-Object { $_.ToString().Trim() }) -join " ").ToLowerInvariant()
+        if ($LASTEXITCODE -eq 0 -and $statusText -match '\brunning\b') {
+            return $true
+        }
+        Start-Sleep -Seconds ([Math]::Max($PollIntervalSeconds, 1))
+    }
+
+    return $false
 }
 
 function Write-Step {
@@ -236,6 +288,15 @@ if ($shouldHandleEmulator) {
             if ($null -ne $launcher) {
                 $startedLaunchers.Add($launcher)
             }
+
+            $ldconsolePath = Resolve-LdplayerConsolePath -StartCommand $LdplayerStartCommand
+            $ldIndex = Resolve-LdplayerIndex -StartCommand $LdplayerStartCommand
+            $ldReady = Wait-LdplayerRunning -LdconsolePath $ldconsolePath -Index $ldIndex -TimeoutSeconds 75 -PollIntervalSeconds ([Math]::Min([Math]::Max($PollIntervalSeconds, 1), 5))
+            if (-not $ldReady) {
+                $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+                throw "LDPlayer launch probe failed within 75s (index=$ldIndex). Service account may lack interactive desktop rights. current_identity=$identity"
+            }
+            Write-Host "[LDPlayer] running probe passed: index=$ldIndex"
         }
     }
 }
