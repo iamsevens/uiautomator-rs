@@ -45,40 +45,14 @@ if ([string]::IsNullOrWhiteSpace($MumuStopCommand) -and -not [string]::IsNullOrW
     $MumuStopCommand = $env:MUMU_STOP_CMD
 }
 
-$defaultMumuManagerPath = "C:\Program Files\Netease\MuMu\nx_main\MuMuManager.exe"
-if ($isTcpSerial) {
-    if (-not [string]::IsNullOrWhiteSpace($MumuStartCommand) -and $MumuStartCommand -match '(?i)MuMuNxMain\.exe' -and (Test-Path $defaultMumuManagerPath)) {
-        Write-Host "[MuMu] normalize start command from MuMuNxMain to MuMuManager launch."
-        $MumuStartCommand = "& '$defaultMumuManagerPath' control -v 0 launch"
-    }
-    if ([string]::IsNullOrWhiteSpace($MumuStopCommand) -and (Test-Path $defaultMumuManagerPath)) {
-        $MumuStopCommand = "& '$defaultMumuManagerPath' control -v 0 shutdown"
-    }
-}
+function Resolve-MumuIndex {
+    param([string]$Command)
 
-if ([string]::IsNullOrWhiteSpace($LdplayerStopCommand)) {
-    if (-not [string]::IsNullOrWhiteSpace($LdplayerStartCommand) -and $LdplayerStartCommand -match "(?i)'([^']*ldconsole\.exe)'") {
-        $ldconsolePath = $matches[1]
-        $LdplayerStopCommand = "& '$ldconsolePath' quit --index 0"
+    if (-not [string]::IsNullOrWhiteSpace($Command) -and $Command -match '(?i)(--vmindex|-v)\s+(\d+)') {
+        return [int]$matches[2]
     }
-    else {
-        $defaultLdconsolePath = "D:\leidian\LDPlayer9\ldconsole.exe"
-        if (Test-Path $defaultLdconsolePath) {
-            $LdplayerStopCommand = "& '$defaultLdconsolePath' quit --index 0"
-        }
-    }
-}
 
-if ([string]::IsNullOrWhiteSpace($MumuConnectEndpoints)) {
-    if (-not [string]::IsNullOrWhiteSpace($env:MUMU_ADB_ENDPOINTS)) {
-        $MumuConnectEndpoints = $env:MUMU_ADB_ENDPOINTS
-    }
-    elseif ($isTcpSerial) {
-        $MumuConnectEndpoints = $defaultMumuEndpoints
-    }
-    else {
-        $MumuConnectEndpoints = ""
-    }
+    return 0
 }
 
 function Resolve-LdplayerConsolePath {
@@ -104,6 +78,42 @@ function Resolve-LdplayerIndex {
     }
 
     return 0
+}
+
+$mumuIndex = Resolve-MumuIndex -Command $MumuStartCommand
+$ldplayerIndex = Resolve-LdplayerIndex -StartCommand $LdplayerStartCommand
+$ldconsoleResolvedPath = Resolve-LdplayerConsolePath -StartCommand $LdplayerStartCommand
+
+$defaultMumuManagerPath = "C:\Program Files\Netease\MuMu\nx_main\MuMuManager.exe"
+if ($isTcpSerial) {
+    if (-not [string]::IsNullOrWhiteSpace($MumuStartCommand) -and $MumuStartCommand -match '(?i)MuMuNxMain\.exe' -and (Test-Path $defaultMumuManagerPath)) {
+        Write-Host "[MuMu] normalize start command from MuMuNxMain to MuMuManager launch."
+        $MumuStartCommand = "& '$defaultMumuManagerPath' control -v $mumuIndex launch"
+    }
+    if ([string]::IsNullOrWhiteSpace($MumuStopCommand) -and (Test-Path $defaultMumuManagerPath)) {
+        $MumuStopCommand = "& '$defaultMumuManagerPath' control -v $mumuIndex shutdown"
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($LdplayerStopCommand)) {
+    if (-not [string]::IsNullOrWhiteSpace($ldconsoleResolvedPath)) {
+        $LdplayerStopCommand = "& '$ldconsoleResolvedPath' quit --index $ldplayerIndex"
+    }
+    else {
+        $LdplayerStopCommand = ""
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($MumuConnectEndpoints)) {
+    if (-not [string]::IsNullOrWhiteSpace($env:MUMU_ADB_ENDPOINTS)) {
+        $MumuConnectEndpoints = $env:MUMU_ADB_ENDPOINTS
+    }
+    elseif ($isTcpSerial) {
+        $MumuConnectEndpoints = $defaultMumuEndpoints
+    }
+    else {
+        $MumuConnectEndpoints = ""
+    }
 }
 
 function Wait-LdplayerRunning {
@@ -319,8 +329,8 @@ if (-not [string]::IsNullOrWhiteSpace($LauncherStatePath)) {
 }
 
 Write-Step "Try initial adb connect"
-Connect-Endpoints -EndpointsCsv $MumuConnectEndpoints
 if ($isTcpSerial) {
+    Connect-Endpoints -EndpointsCsv $MumuConnectEndpoints
     $null = Invoke-AdbRaw -CmdArgs @("connect", $Serial) -AllowFailure
 }
 
@@ -333,7 +343,7 @@ while ((Get-Date) -lt $deadline) {
     $attempt++
 
     # Reconnect periodically for tcp endpoints.
-    if (($attempt -eq 1) -or ($attempt % [Math]::Max([int](30 / $PollIntervalSeconds), 1) -eq 0)) {
+    if ($isTcpSerial -and (($attempt -eq 1) -or ($attempt % [Math]::Max([int](30 / $PollIntervalSeconds), 1) -eq 0))) {
         Connect-Endpoints -EndpointsCsv $MumuConnectEndpoints
         if ($isTcpSerial) {
             $null = Invoke-AdbRaw -CmdArgs @("connect", $Serial) -AllowFailure

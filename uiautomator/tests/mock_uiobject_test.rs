@@ -13,7 +13,6 @@ fn create_mock_device(server: &Server) -> Device {
 }
 
 #[tokio::test]
-#[ignore = "需要 Device 支持自定义 URL"]
 async fn test_exists_returns_true_when_element_found() {
     let mut server = Server::new_async().await;
 
@@ -58,7 +57,6 @@ async fn test_exists_returns_true_when_element_found() {
 }
 
 #[tokio::test]
-#[ignore = "需要 Device 支持自定义 URL"]
 async fn test_exists_returns_false_when_element_not_found() {
     let mut server = Server::new_async().await;
 
@@ -88,7 +86,6 @@ async fn test_exists_returns_false_when_element_not_found() {
 }
 
 #[tokio::test]
-#[ignore = "需要 Device 支持自定义 URL"]
 async fn test_wait_succeeds_when_element_appears() {
     let mut server = Server::new_async().await;
 
@@ -133,7 +130,6 @@ async fn test_wait_succeeds_when_element_appears() {
 }
 
 #[tokio::test]
-#[ignore = "需要 Device 支持自定义 URL"]
 async fn test_wait_timeout_returns_error() {
     let mut server = Server::new_async().await;
 
@@ -172,7 +168,6 @@ async fn test_wait_timeout_returns_error() {
 }
 
 #[tokio::test]
-#[ignore = "需要 Device 支持自定义 URL"]
 async fn test_wait_gone_succeeds_when_element_disappears() {
     let mut server = Server::new_async().await;
 
@@ -202,7 +197,6 @@ async fn test_wait_gone_succeeds_when_element_disappears() {
 }
 
 #[tokio::test]
-#[ignore = "需要 Device 支持自定义 URL"]
 async fn test_wait_gone_timeout_returns_error() {
     let mut server = Server::new_async().await;
 
