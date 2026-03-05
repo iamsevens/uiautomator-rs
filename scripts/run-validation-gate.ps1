@@ -157,14 +157,35 @@ function Resolve-FailureCode {
         "build_test_app" { return "test_app_build_failed" }
     }
 
+    $explicitAdbSignals = @(
+        "device offline",
+        "device unauthorized",
+        "target serial did not become online",
+        "target device",
+        "cannot connect to",
+        "adb version failed",
+        "adb start-server failed",
+        "no devices/emulators found"
+    )
+    foreach ($signal in $explicitAdbSignals) {
+        if ($msg -like "*$signal*") {
+            return "adb_device_unavailable"
+        }
+    }
+
+    if ($msg -match '\badb\b.+failed') {
+        return "adb_device_unavailable"
+    }
+
+    if ($FailedStep -in @("run_full", "run_smoke", "validate_child_manifest")) {
+        return "test_or_runtime_failure"
+    }
+
     if ($msg -match "timed out|timeout") {
         return "step_timeout"
     }
     if ($msg -match "manifest|summary|convertfrom-json") {
         return "manifest_or_summary_invalid"
-    }
-    if ($msg -match "adb|offline|unauthorized|device") {
-        return "adb_device_unavailable"
     }
     return "test_or_runtime_failure"
 }
