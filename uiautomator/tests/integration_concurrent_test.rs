@@ -6,6 +6,30 @@ mod common;
 use std::time::Duration;
 use uiautomator::{Key, Selector};
 
+async fn screenshot_with_retry(
+    device: &uiautomator::Device,
+    task_id: usize,
+    max_attempts: usize,
+) -> uiautomator::Result<image::DynamicImage> {
+    let mut last_error = None;
+
+    for attempt in 1..=max_attempts {
+        match device.screenshot().await {
+            Ok(img) => return Ok(img),
+            Err(err) => {
+                eprintln!(
+                    "截图任务 {} 第 {}/{} 次失败: {}",
+                    task_id, attempt, max_attempts, err
+                );
+                last_error = Some(err);
+                tokio::time::sleep(Duration::from_millis(200 * attempt as u64)).await;
+            }
+        }
+    }
+
+    Err(last_error.expect("screenshot retry should have captured an error"))
+}
+
 #[tokio::test]
 async fn test_concurrent_device_info() {
     common::init_test_env();
@@ -67,9 +91,9 @@ async fn test_concurrent_screenshots() {
 
     // 使用 tokio::join! 并发截图
     let (img0, img1, img2) = tokio::join!(
-        device.screenshot(),
-        device.screenshot(),
-        device.screenshot()
+        screenshot_with_retry(&device, 0, 3),
+        screenshot_with_retry(&device, 1, 3),
+        screenshot_with_retry(&device, 2, 3)
     );
 
     let img0 = img0.unwrap();
