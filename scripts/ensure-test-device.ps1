@@ -14,6 +14,8 @@ param(
 
     [string]$LauncherStatePath = "",
 
+    [switch]$RegisterStopWhenAlreadyOnline,
+
     [int]$WaitTimeoutSeconds = 360,
 
     [int]$PollIntervalSeconds = 5
@@ -209,6 +211,18 @@ $startedLaunchers = New-Object System.Collections.Generic.List[object]
 if ($shouldHandleEmulator) {
     if ($targetAlreadyOnline) {
         Write-Host "target serial already online: $Serial state=$targetInitialState; skip emulator auto-start."
+        if ($RegisterStopWhenAlreadyOnline) {
+            $stopCommand = if ($isTcpSerial) { $MumuStopCommand } elseif ($isEmulatorSerial) { $LdplayerStopCommand } else { "" }
+            if (-not [string]::IsNullOrWhiteSpace($stopCommand)) {
+                $startedLaunchers.Add([PSCustomObject]@{
+                        Name        = if ($isTcpSerial) { "MuMu" } else { "LDPlayer" }
+                        Pid         = 0
+                        Command     = ""
+                        StopCommand = $stopCommand
+                })
+                Write-Host "registered stop command for already-online target: $Serial"
+            }
+        }
     }
     else {
         if ($isTcpSerial) {

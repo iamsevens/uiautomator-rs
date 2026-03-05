@@ -52,7 +52,7 @@ jobs:
         run: |
           set "MANIFEST_PATH=%RUNNER_TEMP%\install-smoke-gate-manifest.json"
           echo MANIFEST_PATH=%MANIFEST_PATH%>>"%GITHUB_ENV%"
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-validation-gate.ps1 -Mode smoke -Serial "${{ inputs.serial }}" -TargetName "${{ inputs.target_name }}" -StepTimeoutMinutes "${{ inputs.step_timeout_minutes }}" -WaitTimeoutSeconds 360 -OutputManifestPath "%MANIFEST_PATH%" -LdplayerStartCommand "${{ vars.LDPLAYER_START_CMD }}" -LdplayerStopCommand "${{ vars.LDPLAYER_STOP_CMD }}" -MumuStartCommand "${{ vars.MUMU_START_CMD }}" -MumuStopCommand "${{ vars.MUMU_STOP_CMD }}" -MumuConnectEndpoints "${{ vars.MUMU_ADB_ENDPOINTS }}"
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-validation-gate.ps1 -Mode smoke -Serial "${{ inputs.serial }}" -TargetName "${{ inputs.target_name }}" -StepTimeoutMinutes "${{ inputs.step_timeout_minutes }}" -WaitTimeoutSeconds 360 -OutputManifestPath "%MANIFEST_PATH%" -ShutdownTargetOnExit -LdplayerStartCommand "${{ vars.LDPLAYER_START_CMD }}" -LdplayerStopCommand "${{ vars.LDPLAYER_STOP_CMD }}" -MumuStartCommand "${{ vars.MUMU_START_CMD }}" -MumuStopCommand "${{ vars.MUMU_STOP_CMD }}" -MumuConnectEndpoints "${{ vars.MUMU_ADB_ENDPOINTS }}"
 
       - name: Parse structured summary
         if: always()

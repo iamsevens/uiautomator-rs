@@ -32,6 +32,8 @@ param(
 
     [string]$OutputManifestPath = "",
 
+    [switch]$ShutdownTargetOnExit,
+
     [switch]$SkipRustCheck,
 
     [switch]$SkipEnsureDevice,
@@ -432,10 +434,11 @@ try {
 
     Invoke-GateStep -Step "ensure_test_device" -Command ".\\scripts\\ensure-test-device.ps1 -Serial $Serial" -Skip:$SkipEnsureDevice -SkipReason "SkipEnsureDevice" -Action {
         $ensureArgs = @{
-            Serial             = $Serial
-            WaitTimeoutSeconds = $WaitTimeoutSeconds
-            PollIntervalSeconds = $PollIntervalSeconds
-            LauncherStatePath  = $launcherStatePath
+            Serial                       = $Serial
+            WaitTimeoutSeconds           = $WaitTimeoutSeconds
+            PollIntervalSeconds          = $PollIntervalSeconds
+            LauncherStatePath            = $launcherStatePath
+            RegisterStopWhenAlreadyOnline = $ShutdownTargetOnExit
         }
         if (-not [string]::IsNullOrWhiteSpace($LdplayerStartCommand)) {
             $ensureArgs["LdplayerStartCommand"] = $LdplayerStartCommand
