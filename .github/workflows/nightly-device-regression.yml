@@ -142,8 +142,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Enforce summary status
+      - name: Enforce summary status (allow unavailable device)
         if: always()
         shell: cmd
         run: |
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if ('%RUN_STATUS%' -ne 'passed') { throw 'nightly regression failed for target=${{ matrix.name }} serial=${{ matrix.serial }}' }"
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\enforce-run-status.ps1 -Context "nightly target=${{ matrix.name }} serial=${{ matrix.serial }}" -AllowFailureCodes "adb_device_unavailable"

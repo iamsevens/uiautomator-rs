@@ -28,6 +28,8 @@ if ([string]::IsNullOrWhiteSpace($ManifestPath) -or -not (Test-Path $ManifestPat
     }
 
     "RUN_STATUS=failed" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+    "RUN_FAILURE_CODE=manifest_missing" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+    "RUN_FAILURE_MESSAGE=manifest not found: $ManifestPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
     "RUN_LOG_DIR=" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
     "RUN_SUMMARY_JSON=" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
     "RUN_SUMMARY_JUNIT=" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -62,6 +64,8 @@ if ([string]::IsNullOrWhiteSpace($env:GITHUB_ENV)) {
 }
 
 "RUN_STATUS=$($manifest.status)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+"RUN_FAILURE_CODE=$($manifest.failure_code)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+"RUN_FAILURE_MESSAGE=$($manifest.failure_message)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 "RUN_LOG_DIR=$($manifest.run_log_dir)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 "RUN_SUMMARY_JSON=$($manifest.summary_json)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 "RUN_SUMMARY_JUNIT=$($manifest.summary_junit)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
