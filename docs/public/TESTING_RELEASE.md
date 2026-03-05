@@ -19,6 +19,7 @@ Sources:
 - `.kiro/specs/uiautomator*/tasks.md`
 - `.kiro/specs/bugfix/tasks.md`
 - `scripts/device-full-test.ps1`
+- `scripts/run-validation-gate.ps1`
 - `scripts/api-coverage-report.ps1`
 - `scripts/release-check.ps1`, `scripts/release-check.sh`
 - `scripts/trigger-gh-device-regression.ps1`
@@ -46,12 +47,12 @@ Release validation should include both.
 ### Standard Command
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1 -Serial <serial>
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
 ```
 
 ### Fixed Steps
 
-1. Validate target device availability (explicit serial only).
+1. Run gate preflight (`PowerShell`, `adb`, Rust toolchain, device readiness).
 2. Clean ATX/uiautomator runtime state and stale processes.
 3. Rebuild environment via `init -f`.
 4. Install/verify `test-app` (`com.uiautomator.testapp`).
@@ -92,6 +93,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1
 
 ### Output Paths
 
+- Gate orchestrator: `internal/testlogs/validation-gate/<run-id>/`
 - Full regression: `internal/testlogs/full-device/<run-id>/`
 - API coverage: `internal/testlogs/api-coverage/<run-id>/`
 
@@ -115,6 +117,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1
 - `E-TEST`: test-case design/assertion/timeout issues
 - `E-LIB`: core library regressions
 - `E-CLI`: CLI flow/output regressions
+
+### Gate Failure Codes (Machine Readable)
+
+- `env_missing_powershell`
+- `env_missing_adb`
+- `env_missing_rust_toolchain`
+- `adb_device_unavailable`
+- `test_app_build_failed`
+- `step_timeout`
+- `manifest_or_summary_invalid`
+- `test_or_runtime_failure`
 
 ### Handling Rules
 
@@ -164,7 +177,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-check.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1 -Serial <serial>
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
 cargo publish --dry-run
 ```

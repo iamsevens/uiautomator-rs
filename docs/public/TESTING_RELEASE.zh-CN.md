@@ -16,7 +16,7 @@
 
 - `.kiro/specs/uiautomator*/tasks.md`
 - `.kiro/specs/bugfix/tasks.md`
-- 仓库脚本：`scripts/device-full-test.ps1`、`scripts/api-coverage-report.ps1`
+- 仓库脚本：`scripts/run-validation-gate.ps1`、`scripts/device-full-test.ps1`、`scripts/api-coverage-report.ps1`
 - 发布检查脚本：`scripts/release-check.ps1`、`scripts/release-check.sh`
 
 适用对象：
@@ -43,12 +43,12 @@
 ### 4.1 标准命令
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1 -Serial <serial>
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
 ```
 
 ### 4.2 固定步骤
 
-1. 设备连通性检查（串号 pin，禁止模糊匹配）。
+1. 执行 gate 预检（`PowerShell`、`adb`、Rust 工具链、设备就绪）。
 2. 清理 ATX/uiautomator 运行状态与残留进程。
 3. `init -f` 从空环境重建依赖。
 4. 安装并校验 `test-app`（包名 `com.uiautomator.testapp`）。
@@ -83,6 +83,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1
 
 ### 6.1 输出目录
 
+- Gate 编排层：`internal/testlogs/validation-gate/<run-id>/`
 - 全量回归：`internal/testlogs/full-device/<run-id>/`
 - API 对账：`internal/testlogs/api-coverage/<run-id>/`
 
@@ -107,6 +108,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1
 - `E-TEST`：测试用例本身问题（断言错误、超时设置不合理）。
 - `E-LIB`：库实现回归（API 行为错误、协议处理错误）。
 - `E-CLI`：CLI 行为回归（命令流程、输出语义错误）。
+
+### 7.1.1 Gate 机器可读失败码
+
+- `env_missing_powershell`
+- `env_missing_adb`
+- `env_missing_rust_toolchain`
+- `adb_device_unavailable`
+- `test_app_build_failed`
+- `step_timeout`
+- `manifest_or_summary_invalid`
+- `test_or_runtime_failure`
 
 ### 7.2 处理规则
 
@@ -164,7 +176,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-check.ps1
 
 # 2) 设备全量回归（每台设备各跑一次）
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1 -Serial <serial>
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
 
 # 3) API 覆盖对账
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
