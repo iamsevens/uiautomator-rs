@@ -3,7 +3,9 @@
 
 mod common;
 
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use uiautomator::{Key, Selector};
 
 async fn screenshot_with_retry(
@@ -89,11 +91,26 @@ async fn test_concurrent_screenshots() {
 
     let device = common::connect_test_device().await.unwrap();
 
+    // 部分设备/后端不支持并发 screencap，强制串行执行截图命令，避免偶发超时误报。
+    let screenshot_lock = Arc::new(Mutex::new(()));
+    let lock0 = screenshot_lock.clone();
+    let lock1 = screenshot_lock.clone();
+    let lock2 = screenshot_lock.clone();
+
     // 使用 tokio::join! 并发截图
     let (img0, img1, img2) = tokio::join!(
-        screenshot_with_retry(&device, 0, 3),
-        screenshot_with_retry(&device, 1, 3),
-        screenshot_with_retry(&device, 2, 3)
+        async {
+            let _guard = lock0.lock().await;
+            screenshot_with_retry(&device, 0, 3).await
+        },
+        async {
+            let _guard = lock1.lock().await;
+            screenshot_with_retry(&device, 1, 3).await
+        },
+        async {
+            let _guard = lock2.lock().await;
+            screenshot_with_retry(&device, 2, 3).await
+        }
     );
 
     let img0 = img0.unwrap();
