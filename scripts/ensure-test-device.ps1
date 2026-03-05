@@ -155,19 +155,37 @@ if ($WaitTimeoutSeconds -lt $PollIntervalSeconds) {
 Write-Step "Ensure adb server is running"
 $null = Invoke-AdbRaw -CmdArgs @("start-server")
 
+function Get-TargetState {
+    param([string]$TargetSerial)
+
+    $states = Get-AdbDeviceStates
+    if ($states.ContainsKey($TargetSerial)) {
+        return [string]$states[$TargetSerial]
+    }
+    return ""
+}
+
+$targetInitialState = Get-TargetState -TargetSerial $Serial
+$targetAlreadyOnline = $targetInitialState -eq "device"
+
 Write-Step "Optionally start emulators"
 $startedLaunchers = New-Object System.Collections.Generic.List[object]
 if ($shouldHandleEmulator) {
-    if ($isTcpSerial) {
-        $launcher = Start-LauncherCommand -Name "MuMu" -Command $MumuStartCommand
-        if ($null -ne $launcher) {
-            $startedLaunchers.Add($launcher)
-        }
+    if ($targetAlreadyOnline) {
+        Write-Host "target serial already online: $Serial state=$targetInitialState; skip emulator auto-start."
     }
-    elseif ($isEmulatorSerial) {
-        $launcher = Start-LauncherCommand -Name "LDPlayer" -Command $LdplayerStartCommand
-        if ($null -ne $launcher) {
-            $startedLaunchers.Add($launcher)
+    else {
+        if ($isTcpSerial) {
+            $launcher = Start-LauncherCommand -Name "MuMu" -Command $MumuStartCommand
+            if ($null -ne $launcher) {
+                $startedLaunchers.Add($launcher)
+            }
+        }
+        elseif ($isEmulatorSerial) {
+            $launcher = Start-LauncherCommand -Name "LDPlayer" -Command $LdplayerStartCommand
+            if ($null -ne $launcher) {
+                $startedLaunchers.Add($launcher)
+            }
         }
     }
 }
@@ -183,7 +201,7 @@ if (-not [string]::IsNullOrWhiteSpace($LauncherStatePath)) {
     $state = [ordered]@{
         serial    = $Serial
         started_at = (Get-Date).ToString("o")
-        launchers = @($startedLaunchers)
+        launchers = $startedLaunchers.ToArray()
     }
     $state | ConvertTo-Json -Depth 6 | Set-Content -Path $LauncherStatePath -Encoding utf8
     Write-Host "launcher state path: $LauncherStatePath"
