@@ -110,15 +110,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Runner PowerShell preflight
+        shell: cmd
+        run: |
+          if not exist "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" (
+            echo Windows PowerShell not found at "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+            exit /b 1
+          )
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$PSVersionTable.PSVersion"
+
       - name: Check Rust toolchain
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-rust-toolchain.ps1
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-rust-toolchain.ps1
 
       - name: Build test-app debug APK
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-test-app.ps1
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-test-app.ps1
 
       - name: Ensure target device online
         shell: cmd
@@ -127,7 +136,7 @@ jobs:
           MUMU_START_CMD: ${{ vars.MUMU_START_CMD }}
           MUMU_ADB_ENDPOINTS: ${{ vars.MUMU_ADB_ENDPOINTS }}
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ensure-test-device.ps1 -Serial "${{ matrix.serial }}" -WaitTimeoutSeconds 360
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\ensure-test-device.ps1 -Serial "${{ matrix.serial }}" -WaitTimeoutSeconds 360
 
       - name: Run nightly full-device regression
         id: run_nightly
@@ -136,13 +145,13 @@ jobs:
         run: |
           set "MANIFEST_PATH=%RUNNER_TEMP%\nightly-device-full-manifest-${{ matrix.name }}.json"
           echo MANIFEST_PATH=%MANIFEST_PATH%>>"%GITHUB_ENV%"
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-device-full-regression.ps1 -Serial "${{ matrix.serial }}" -TargetName "${{ matrix.name }}" -StepTimeoutMinutes "${{ needs.prepare-targets.outputs.step_timeout_minutes }}" -OutputManifestPath "%MANIFEST_PATH%" -ExpectedAbi "${{ matrix.expected_abi }}" -ExpectedAndroidMajor "${{ matrix.expected_android_major }}"
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-device-full-regression.ps1 -Serial "${{ matrix.serial }}" -TargetName "${{ matrix.name }}" -StepTimeoutMinutes "${{ needs.prepare-targets.outputs.step_timeout_minutes }}" -OutputManifestPath "%MANIFEST_PATH%" -ExpectedAbi "${{ matrix.expected_abi }}" -ExpectedAndroidMajor "${{ matrix.expected_android_major }}"
 
       - name: Parse structured summary
         if: always()
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ matrix.serial }}" -Context "target=${{ matrix.name }} serial=${{ matrix.serial }}" -AllowMissingManifest
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ matrix.serial }}" -Context "target=${{ matrix.name }} serial=${{ matrix.serial }}" -AllowMissingManifest
 
       - name: Upload nightly artifacts
         if: always()
@@ -161,4 +170,4 @@ jobs:
         if: always()
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -Command "if ('%RUN_STATUS%' -ne 'passed') { throw 'nightly regression failed for target=${{ matrix.name }} serial=${{ matrix.serial }}' }"
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if ('%RUN_STATUS%' -ne 'passed') { throw 'nightly regression failed for target=${{ matrix.name }} serial=${{ matrix.serial }}' }"

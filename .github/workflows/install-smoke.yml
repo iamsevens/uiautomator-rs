@@ -39,10 +39,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Runner PowerShell preflight
+        shell: cmd
+        run: |
+          if not exist "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" (
+            echo Windows PowerShell not found at "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+            exit /b 1
+          )
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$PSVersionTable.PSVersion"
+
       - name: Check Rust toolchain
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-rust-toolchain.ps1
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-rust-toolchain.ps1
 
       - name: Ensure target device online
         shell: cmd
@@ -51,7 +60,7 @@ jobs:
           MUMU_START_CMD: ${{ vars.MUMU_START_CMD }}
           MUMU_ADB_ENDPOINTS: ${{ vars.MUMU_ADB_ENDPOINTS }}
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ensure-test-device.ps1 -Serial "${{ inputs.serial }}" -WaitTimeoutSeconds 360
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\ensure-test-device.ps1 -Serial "${{ inputs.serial }}" -WaitTimeoutSeconds 360
 
       - name: Run post-install smoke
         id: run_smoke
@@ -60,13 +69,13 @@ jobs:
         run: |
           set "MANIFEST_PATH=%RUNNER_TEMP%\install-smoke-manifest.json"
           echo MANIFEST_PATH=%MANIFEST_PATH%>>"%GITHUB_ENV%"
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\post-install-smoke.ps1 -Serial "${{ inputs.serial }}" -TargetName "${{ inputs.target_name }}" -StepTimeoutMinutes "${{ inputs.step_timeout_minutes }}" -OutputManifestPath "%MANIFEST_PATH%"
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\post-install-smoke.ps1 -Serial "${{ inputs.serial }}" -TargetName "${{ inputs.target_name }}" -StepTimeoutMinutes "${{ inputs.step_timeout_minutes }}" -OutputManifestPath "%MANIFEST_PATH%"
 
       - name: Parse structured summary
         if: always()
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ inputs.serial }}" -Context "serial=${{ inputs.serial }}" -AllowMissingManifest
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ inputs.serial }}" -Context "serial=${{ inputs.serial }}" -AllowMissingManifest
 
       - name: Upload smoke artifacts
         if: always()
@@ -85,4 +94,4 @@ jobs:
         if: always()
         shell: cmd
         run: |
-          powershell -NoProfile -ExecutionPolicy Bypass -Command "if ('%RUN_STATUS%' -ne 'passed') { throw 'install smoke failed for serial=${{ inputs.serial }}' }"
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if ('%RUN_STATUS%' -ne 'passed') { throw 'install smoke failed for serial=${{ inputs.serial }}' }"

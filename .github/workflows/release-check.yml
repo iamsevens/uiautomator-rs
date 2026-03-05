@@ -64,8 +64,8 @@ jobs:
 
           python -c "import os, shutil, uiautomator2; assets=os.path.join(os.path.dirname(uiautomator2.__file__), 'assets'); shutil.copy2(os.path.join(assets, 'u2.jar'), r'uiautomator\\assets\\u2.jar')"
 
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\uiautomator\assets\download_atx_agent.ps1
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\uiautomator-cli\assets\download_atx_agent.ps1
+          & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File .\uiautomator\assets\download_atx_agent.ps1
+          & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File .\uiautomator-cli\assets\download_atx_agent.ps1
 
           Copy-Item .\uiautomator-cli\assets\app-uiautomator.apk .\uiautomator\assets\app-uiautomator.apk -Force
 
@@ -77,4 +77,4 @@ jobs:
       - name: Run package release checks (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
+        run: & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
