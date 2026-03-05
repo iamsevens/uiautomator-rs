@@ -73,6 +73,7 @@ if ([string]::IsNullOrWhiteSpace($OutputManifestPath)) {
 }
 
 $childManifestPath = Join-Path $runLogDir "child-manifest.json"
+$launcherStatePath = Join-Path $runLogDir "launcher-state.json"
 $summary = New-Object System.Collections.Generic.List[object]
 $script:LastFailedStep = ""
 $PowerShellExe = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -330,6 +331,50 @@ function Write-GateManifest {
     $manifest | ConvertTo-Json -Depth 8 | Set-Content -Path $OutputManifestPath -Encoding utf8
 }
 
+function Stop-StartedLaunchers {
+    param([string]$StatePath)
+
+    if ([string]::IsNullOrWhiteSpace($StatePath) -or -not (Test-Path $StatePath)) {
+        return
+    }
+
+    try {
+        $state = Get-Content -Path $StatePath -Raw -Encoding utf8 | ConvertFrom-Json
+        if ($null -eq $state -or $state.PSObject.Properties.Name -notcontains "launchers") {
+            return
+        }
+
+        foreach ($launcher in @($state.launchers)) {
+            $pidText = if ($launcher.PSObject.Properties.Name -contains "Pid") { [string]$launcher.Pid } else { "" }
+            if ([string]::IsNullOrWhiteSpace($pidText)) {
+                continue
+            }
+
+            $launcherPid = 0
+            if (-not [int]::TryParse($pidText, [ref]$launcherPid) -or $launcherPid -le 0) {
+                continue
+            }
+
+            $name = if ($launcher.PSObject.Properties.Name -contains "Name") { [string]$launcher.Name } else { "launcher" }
+            $proc = Get-Process -Id $launcherPid -ErrorAction SilentlyContinue
+            if ($null -eq $proc) {
+                Write-Host "[$name] pid=$launcherPid already exited"
+                continue
+            }
+
+            Write-Host "[$name] stopping pid=$launcherPid"
+            Stop-Process -Id $launcherPid -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 500
+            if ($null -ne (Get-Process -Id $launcherPid -ErrorAction SilentlyContinue)) {
+                Write-Host "::warning::[$name] pid=$launcherPid still running after stop request"
+            }
+        }
+    }
+    catch {
+        Write-Host "::warning::failed to stop started launchers from '$StatePath': $($_.Exception.Message)"
+    }
+}
+
 $childManifest = $null
 $runStatus = "passed"
 $failureMessage = ""
@@ -374,6 +419,7 @@ try {
             Serial             = $Serial
             WaitTimeoutSeconds = $WaitTimeoutSeconds
             PollIntervalSeconds = $PollIntervalSeconds
+            LauncherStatePath  = $launcherStatePath
         }
         if (-not [string]::IsNullOrWhiteSpace($LdplayerStartCommand)) {
             $ensureArgs["LdplayerStartCommand"] = $LdplayerStartCommand
@@ -468,6 +514,7 @@ if ($runStatus -eq "passed" -and $null -ne $childManifest -and [string]$childMan
 
 $structured = Write-GateStructuredSummary -RunStatus $runStatus -FailureMessage $failureMessage -FailureCode $failureCode
 Write-GateManifest -RunStatus $runStatus -StructuredSummary $structured -FailureMessage $failureMessage -FailureCode $failureCode -ChildManifest $childManifest
+Stop-StartedLaunchers -StatePath $launcherStatePath
 
 Write-Host ""
 Write-Host "Validation gate status: $runStatus"

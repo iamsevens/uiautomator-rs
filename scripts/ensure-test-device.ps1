@@ -8,6 +8,8 @@ param(
 
     [string]$MumuConnectEndpoints = "",
 
+    [string]$LauncherStatePath = "",
+
     [int]$WaitTimeoutSeconds = 360,
 
     [int]$PollIntervalSeconds = 5
@@ -82,7 +84,7 @@ function Start-LauncherCommand {
 
     if ([string]::IsNullOrWhiteSpace($Command)) {
         Write-Host "[$Name] start command is empty. skip."
-        return
+        return $null
     }
 
     Write-Host "[$Name] start command: $Command"
@@ -92,6 +94,11 @@ function Start-LauncherCommand {
         -WindowStyle Hidden `
         -PassThru
     Write-Host "[$Name] launcher pid: $($proc.Id)"
+    return [PSCustomObject]@{
+        Name    = $Name
+        Pid     = $proc.Id
+        Command = $Command
+    }
 }
 
 function Get-AdbDeviceStates {
@@ -149,12 +156,37 @@ Write-Step "Ensure adb server is running"
 $null = Invoke-AdbRaw -CmdArgs @("start-server")
 
 Write-Step "Optionally start emulators"
+$startedLaunchers = New-Object System.Collections.Generic.List[object]
 if ($shouldHandleEmulator) {
-    Start-LauncherCommand -Name "LDPlayer" -Command $LdplayerStartCommand
-    Start-LauncherCommand -Name "MuMu" -Command $MumuStartCommand
+    if ($isTcpSerial) {
+        $launcher = Start-LauncherCommand -Name "MuMu" -Command $MumuStartCommand
+        if ($null -ne $launcher) {
+            $startedLaunchers.Add($launcher)
+        }
+    }
+    elseif ($isEmulatorSerial) {
+        $launcher = Start-LauncherCommand -Name "LDPlayer" -Command $LdplayerStartCommand
+        if ($null -ne $launcher) {
+            $startedLaunchers.Add($launcher)
+        }
+    }
 }
 else {
     Write-Host "target serial is not emulator/tcp. skip emulator auto-start."
+}
+
+if (-not [string]::IsNullOrWhiteSpace($LauncherStatePath)) {
+    $stateDir = Split-Path -Parent $LauncherStatePath
+    if (-not [string]::IsNullOrWhiteSpace($stateDir)) {
+        New-Item -ItemType Directory -Force -Path $stateDir | Out-Null
+    }
+    $state = [ordered]@{
+        serial    = $Serial
+        started_at = (Get-Date).ToString("o")
+        launchers = @($startedLaunchers)
+    }
+    $state | ConvertTo-Json -Depth 6 | Set-Content -Path $LauncherStatePath -Encoding utf8
+    Write-Host "launcher state path: $LauncherStatePath"
 }
 
 Write-Step "Try initial adb connect"
