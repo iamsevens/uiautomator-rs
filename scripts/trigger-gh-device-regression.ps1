@@ -1,6 +1,5 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$Serial,
+    [string]$Serial = "",
 
     [string]$Repo = "iamsevens/uiautomator-rs",
 
@@ -229,12 +228,46 @@ function Wait-RunCompletion {
     throw "$Label run timed out after $MaxWaitMinutes minutes"
 }
 
+function Resolve-Serial {
+    if (-not [string]::IsNullOrWhiteSpace($Serial)) {
+        return $Serial
+    }
+
+    $output = & adb devices 2>&1
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        $text = ($output | ForEach-Object { $_.ToString() }) -join "`n"
+        throw "adb devices failed (exit=$exitCode):`n$text"
+    }
+
+    $devices = @()
+    foreach ($line in $output) {
+        $text = $line.ToString().Trim()
+        if ($text -match "^(?<serial>\S+)\s+device$") {
+            $devices += $Matches.serial
+        }
+    }
+
+    if ($devices.Count -eq 0) {
+        throw "no online adb device found. connect one device or pass -Serial explicitly"
+    }
+    if ($devices.Count -gt 1) {
+        $list = $devices -join ", "
+        throw "multiple adb devices found ($list). pass -Serial explicitly"
+    }
+
+    Write-Host ("Auto-selected serial: {0}" -f $devices[0])
+    return $devices[0]
+}
+
 try {
     Invoke-Gh -Arguments @("auth", "status") | Out-Null
 }
 catch {
     throw "gh auth is not ready. run: gh auth login"
 }
+
+$Serial = Resolve-Serial
 
 if ([string]::IsNullOrWhiteSpace($TargetName)) {
     $TargetName = "target_{0}" -f ($Serial -replace "[^A-Za-z0-9._-]", "_")

@@ -110,9 +110,11 @@ Outputs include logs plus machine-readable artifacts (`summary.json`, `summary.j
 
 ### GitHub Actions regression (sequential)
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-device-regression.ps1 -Serial <serial> -TargetName <name> -ExpectedAbi <abi> -ExpectedAndroidMajor <major>
+```cmd
+scripts\run-gh-device-regression.cmd -Serial <serial> -TargetName <name> -ExpectedAbi <abi> -ExpectedAndroidMajor <major>
 ```
+
+If exactly one ADB device is online, `-Serial` can be omitted and the script auto-selects it.
 
 The script dispatches `Install Smoke` first, waits for completion, then dispatches `Device Regression Matrix`.  
 It uses `gh api workflow_dispatch` payload files (UTF-8, no BOM) to avoid `targets_json` quote-loss in PowerShell.
