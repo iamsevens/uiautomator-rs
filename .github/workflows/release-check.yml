@@ -77,4 +77,5 @@ jobs:
       - name: Run package release checks (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
+        run: |
+          & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1

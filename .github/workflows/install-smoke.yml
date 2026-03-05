@@ -39,37 +39,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Runner PowerShell preflight
-        shell: cmd
-        run: |
-          if not exist "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" (
-            echo Windows PowerShell not found at "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-            exit /b 1
-          )
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$PSVersionTable.PSVersion"
-
-      - name: Check Rust toolchain
-        shell: cmd
-        run: |
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-rust-toolchain.ps1
-
-      - name: Ensure target device online
+      - name: Run validation gate (smoke)
+        id: run_smoke
+        continue-on-error: true
         shell: cmd
         env:
           LDPLAYER_START_CMD: ${{ vars.LDPLAYER_START_CMD }}
           MUMU_START_CMD: ${{ vars.MUMU_START_CMD }}
           MUMU_ADB_ENDPOINTS: ${{ vars.MUMU_ADB_ENDPOINTS }}
         run: |
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\ensure-test-device.ps1 -Serial "${{ inputs.serial }}" -WaitTimeoutSeconds 360
-
-      - name: Run post-install smoke
-        id: run_smoke
-        continue-on-error: true
-        shell: cmd
-        run: |
-          set "MANIFEST_PATH=%RUNNER_TEMP%\install-smoke-manifest.json"
+          set "MANIFEST_PATH=%RUNNER_TEMP%\install-smoke-gate-manifest.json"
           echo MANIFEST_PATH=%MANIFEST_PATH%>>"%GITHUB_ENV%"
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\post-install-smoke.ps1 -Serial "${{ inputs.serial }}" -TargetName "${{ inputs.target_name }}" -StepTimeoutMinutes "${{ inputs.step_timeout_minutes }}" -OutputManifestPath "%MANIFEST_PATH%"
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-validation-gate.ps1 -Mode smoke -Serial "${{ inputs.serial }}" -TargetName "${{ inputs.target_name }}" -StepTimeoutMinutes "${{ inputs.step_timeout_minutes }}" -WaitTimeoutSeconds 360 -OutputManifestPath "%MANIFEST_PATH%" -LdplayerStartCommand "${{ vars.LDPLAYER_START_CMD }}" -MumuStartCommand "${{ vars.MUMU_START_CMD }}" -MumuConnectEndpoints "${{ vars.MUMU_ADB_ENDPOINTS }}"
 
       - name: Parse structured summary
         if: always()
