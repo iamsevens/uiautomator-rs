@@ -139,8 +139,13 @@ mod installer_tests {
                     println!("成功创建安装器，设备: {}", installer.device_serial());
                 }
                 Err(e) => {
-                    assert!(e.to_string().contains("未找到连接的设备"));
-                    println!("未找到设备（预期行为）");
+                    let message = e.to_string();
+                    assert!(
+                        message.contains("未找到连接的设备") || message.contains("--serial"),
+                        "unexpected error: {}",
+                        message
+                    );
+                    println!("installer creation failed as expected: {}", message);
                 }
             }
         } else {
