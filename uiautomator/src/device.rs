@@ -221,6 +221,27 @@ impl Device {
         )))
     }
 
+    /// 连接到 Android 设备。
+    ///
+    /// 默认使用 `ServerMode::Auto`，会优先尝试 `ATX-Agent`，
+    /// 不可用时自动回退到 `Direct` 模式。
+    ///
+    /// # 参数
+    ///
+    /// * `serial` - 设备序列号，传入 `None` 时自动选择设备
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(Some("emulator-5554")).await?;
+    ///     println!("connected: {}", device.serial());
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn connect(serial: Option<&str>) -> Result<Self> {
         Self::connect_with_mode(serial, ServerMode::Auto).await
     }
