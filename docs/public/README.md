@@ -18,6 +18,7 @@ These documents consolidate internal spec streams into a publishable set:
 - `REQUIREMENTS.md`: release baseline requirements with IDs and acceptance criteria
 - `DESIGN.md`: architecture, module design, key decisions, and risk handling
 - `API_DOCS.md`: public API guide, crate relationships, conventions, and example entry points
+- `MIGRATION.md`: migration status and future breaking-change guidance
 - `TASKS.md`: completion ledger, open items, release blocking status, priorities
 - `TESTING_RELEASE.md`: test matrix, failure taxonomy, release gates, evidence templates
 - `RELEASE_NOTES.md`: curated release notes with evidence-backed CI/device regression outcomes

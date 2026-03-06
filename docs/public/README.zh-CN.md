@@ -18,6 +18,7 @@
 - `REQUIREMENTS.md`：完整需求基线（含需求编号、验收标准、发布门槛）
 - `DESIGN.md`：完整设计基线（含模块设计、关键流程、错误与可观测性）
 - `API_DOCS.md`：公开 API 指南（crate 关系、调用约定、docs.rs/示例入口）
+- `MIGRATION.md`：迁移状态与未来破坏性变更说明入口
 - `TASKS.md`：任务台账（含已完成、未完成、阻塞性、执行优先级）
 - `TESTING_RELEASE.md`：测试与发布流程（脚本化回归、结构化摘要、发布顺序）
 - `RELEASE_NOTES.md`：发布说明（含关键修复点与可追溯验证证据）

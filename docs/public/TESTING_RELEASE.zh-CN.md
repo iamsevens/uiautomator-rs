@@ -18,6 +18,7 @@
 - `.kiro/specs/bugfix/tasks.md`
 - 仓库脚本：`scripts/run-validation-gate.ps1`、`scripts/device-full-test.ps1`、`scripts/api-coverage-report.ps1`
 - 文档覆盖脚本：`scripts/docs-coverage-report.ps1`
+- 单元覆盖率基线脚本：`scripts/unit-coverage-report.ps1`
 - 发布检查脚本：`scripts/release-check.ps1`、`scripts/release-check.sh`
 
 适用对象：
@@ -88,11 +89,13 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionP
 - 全量回归：`internal/testlogs/full-device/<run-id>/`
 - API 对账：`internal/testlogs/api-coverage/<run-id>/`
 - 文档覆盖：`internal/testlogs/docs/<run-id>/`
+- 单元覆盖率基线：`internal/testlogs/unit-coverage/<run-id>/`
 
 ### 6.2 必须产物
 
 - 人类可读：`*.log`、`*.err.log`
 - 机器可读：`summary.json`、`summary.junit.xml`、`api-coverage.json`、`api-coverage.md`、`docs-coverage-summary.json`、`docs-coverage-summary.md`
+- 内部基线：`unit-coverage-summary.json`、`unit-coverage-summary.md`
 
 ### 6.3 统一编码
 
@@ -161,7 +164,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report
 - 最新覆盖摘要持续产出到 `internal/testlogs/docs/`
 - CI 对覆盖回退执行阻断
 
-### 8.5 发布门槛建议
+### 8.5 单元覆盖率基线执行命令
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/unit-coverage-report.ps1 -Crates uiautomator
+```
+
+### 8.6 单元覆盖率基线目标
+
+- 为核心库产出可重复的单元覆盖率基线。
+- 用它识别低覆盖模块并指导后续补测。
+- 不把单一总覆盖率硬阈值作为设备绑定型代码的唯一发布依据。
+
+### 8.7 发布门槛建议
 
 - 不允许核心公开 API 出现“未覆盖且无豁免说明”。
 - 对暂缓覆盖项必须在发布说明写明原因与计划版本。

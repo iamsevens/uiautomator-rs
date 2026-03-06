@@ -22,6 +22,7 @@ Sources:
 - `scripts/run-validation-gate.ps1`
 - `scripts/api-coverage-report.ps1`
 - `scripts/docs-coverage-report.ps1`
+- `scripts/unit-coverage-report.ps1`
 - `scripts/release-check.ps1`, `scripts/release-check.sh`
 - `scripts/trigger-gh-device-regression.ps1`
 
@@ -98,11 +99,13 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionP
 - Full regression: `internal/testlogs/full-device/<run-id>/`
 - API coverage: `internal/testlogs/api-coverage/<run-id>/`
 - Docs coverage: `internal/testlogs/docs/<run-id>/`
+- Unit coverage baseline: `internal/testlogs/unit-coverage/<run-id>/`
 
 ### Required Artifacts
 
 - Human logs: `*.log`, `*.err.log`
 - Machine-readable: `summary.json`, `summary.junit.xml`, `api-coverage.json`, `api-coverage.md`, `docs-coverage-summary.json`, `docs-coverage-summary.md`
+- Internal baseline: `unit-coverage-summary.json`, `unit-coverage-summary.md`
 
 ### Encoding Rule
 
@@ -169,6 +172,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report
 - Public API examples coverage remains at `100%`
 - Latest docs coverage summaries are generated under `internal/testlogs/docs/`
 - CI blocks regressions below the configured threshold
+
+### Unit Coverage Baseline Command
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/unit-coverage-report.ps1 -Crates uiautomator
+```
+
+### Unit Coverage Baseline Expectations
+
+- Produce a reproducible unit-coverage baseline for the core crate.
+- Use it to identify weak modules before adding more tests.
+- Do not treat a single global percentage as the only release-quality signal for device-bound code.
 
 ## 9. Release Gates
 

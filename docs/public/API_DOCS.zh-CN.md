@@ -197,6 +197,7 @@
 
 - `REQUIREMENTS.md`
 - `DESIGN.md`
+- `MIGRATION.md`
 - `TASKS.md`
 - `TESTING_RELEASE.md`
 - `RELEASE_NOTES.md`
