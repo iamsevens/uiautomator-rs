@@ -127,6 +127,97 @@ impl Device {
     ///     Ok(())
     /// }
     /// ```
+    fn with_settings_read<T>(&self, reader: impl FnOnce(&Settings) -> T) -> T {
+        match self.settings.read() {
+            Ok(settings) => reader(&settings),
+            Err(poisoned) => {
+                warn!("Settings read lock poisoned, recovering");
+                let settings = poisoned.into_inner();
+                reader(&settings)
+            }
+        }
+    }
+
+    fn with_settings_write<T>(&self, writer: impl FnOnce(&mut Settings) -> T) -> T {
+        match self.settings.write() {
+            Ok(mut settings) => writer(&mut settings),
+            Err(poisoned) => {
+                warn!("Settings write lock poisoned, recovering");
+                let mut settings = poisoned.into_inner();
+                writer(&mut settings)
+            }
+        }
+    }
+
+    fn operation_delays(&self) -> (Duration, Duration) {
+        self.with_settings_read(|settings| {
+            (
+                settings.operation_delay_before,
+                settings.operation_delay_after,
+            )
+        })
+    }
+
+    fn is_valid_package_name(package: &str) -> bool {
+        if package.is_empty() || package.len() > 255 {
+            return false;
+        }
+
+        let mut segment_count = 0usize;
+        for segment in package.split('.') {
+            if segment.is_empty() {
+                return false;
+            }
+
+            let mut chars = segment.chars();
+            let Some(first_char) = chars.next() else {
+                return false;
+            };
+
+            if !(first_char.is_ascii_alphabetic() || first_char == '_') {
+                return false;
+            }
+
+            if !chars.all(|character| character.is_ascii_alphanumeric() || character == '_') {
+                return false;
+            }
+
+            segment_count += 1;
+        }
+
+        segment_count >= 2
+    }
+
+    fn is_valid_activity_name(activity: &str) -> bool {
+        !activity.is_empty()
+            && activity.len() <= 255
+            && activity.chars().all(|character| {
+                character.is_ascii_alphanumeric()
+                    || character == '_'
+                    || character == '.'
+                    || character == '$'
+            })
+    }
+
+    fn ensure_valid_package_name(package: &str) -> Result<()> {
+        if Self::is_valid_package_name(package) {
+            return Ok(());
+        }
+
+        Err(Error::InvalidArgument(format!("鏃犳晥鐨勫寘鍚? {}", package)))
+    }
+
+    fn ensure_valid_activity_name(activity: &str) -> Result<()> {
+        if Self::is_valid_activity_name(activity) {
+            return Ok(());
+        }
+
+        Err(Error::InvalidArgument(format!(
+            "鏃犳晥鐨?Activity 鍚? {}",
+            activity
+        )))
+    }
+
     pub async fn connect(serial: Option<&str>) -> Result<Self> {
         Self::connect_with_mode(serial, ServerMode::Auto).await
     }
@@ -511,10 +602,7 @@ impl Device {
     pub async fn click(&self, x: u32, y: u32) -> Result<()> {
         debug!("点击坐标: ({}, {})", x, y);
 
-        // 应用操作前延迟
-        let settings = self.settings.read().unwrap();
-        let delay_before = settings.operation_delay_before;
-        drop(settings);
+        let (delay_before, delay_after) = self.operation_delays();
 
         if delay_before > Duration::from_millis(0) {
             tokio::time::sleep(delay_before).await;
@@ -525,11 +613,6 @@ impl Device {
             .jsonrpc_client
             .call("click", serde_json::json!([x, y]))
             .await?;
-
-        // 应用操作后延迟
-        let settings = self.settings.read().unwrap();
-        let delay_after = settings.operation_delay_after;
-        drop(settings);
 
         if delay_after > Duration::from_millis(0) {
             tokio::time::sleep(delay_after).await;
@@ -571,10 +654,7 @@ impl Device {
 
         debug!("长按坐标: ({}, {}), 时长: {}s", x, y, duration_secs);
 
-        // 应用操作前延迟
-        let settings = self.settings.read().unwrap();
-        let delay_before = settings.operation_delay_before;
-        drop(settings);
+        let (delay_before, delay_after) = self.operation_delays();
 
         if delay_before > Duration::from_millis(0) {
             tokio::time::sleep(delay_before).await;
@@ -610,11 +690,6 @@ impl Device {
                 }
             }
         }
-
-        // 应用操作后延迟
-        let settings = self.settings.read().unwrap();
-        let delay_after = settings.operation_delay_after;
-        drop(settings);
 
         if delay_after > Duration::from_millis(0) {
             tokio::time::sleep(delay_after).await;
@@ -656,10 +731,7 @@ impl Device {
 
         debug!("双击坐标: ({}, {}), 间隔: {}s", x, y, duration_secs);
 
-        // 应用操作前延迟
-        let settings = self.settings.read().unwrap();
-        let delay_before = settings.operation_delay_before;
-        drop(settings);
+        let (delay_before, delay_after) = self.operation_delays();
 
         if delay_before > Duration::from_millis(0) {
             tokio::time::sleep(delay_before).await;
@@ -692,11 +764,6 @@ impl Device {
                 }
             }
         }
-
-        // 应用操作后延迟
-        let settings = self.settings.read().unwrap();
-        let delay_after = settings.operation_delay_after;
-        drop(settings);
 
         if delay_after > Duration::from_millis(0) {
             tokio::time::sleep(delay_after).await;
@@ -750,10 +817,7 @@ impl Device {
             fx, fy, tx, ty, duration_secs
         );
 
-        // 应用操作前延迟
-        let settings = self.settings.read().unwrap();
-        let delay_before = settings.operation_delay_before;
-        drop(settings);
+        let (delay_before, delay_after) = self.operation_delays();
 
         if delay_before > Duration::from_millis(0) {
             tokio::time::sleep(delay_before).await;
@@ -764,11 +828,6 @@ impl Device {
             .jsonrpc_client
             .call("swipe", serde_json::json!([fx, fy, tx, ty, duration_secs]))
             .await?;
-
-        // 应用操作后延迟
-        let settings = self.settings.read().unwrap();
-        let delay_after = settings.operation_delay_after;
-        drop(settings);
 
         if delay_after > Duration::from_millis(0) {
             tokio::time::sleep(delay_after).await;
@@ -822,10 +881,7 @@ impl Device {
             sx, sy, ex, ey, duration_secs
         );
 
-        // 应用操作前延迟
-        let settings = self.settings.read().unwrap();
-        let delay_before = settings.operation_delay_before;
-        drop(settings);
+        let (delay_before, delay_after) = self.operation_delays();
 
         if delay_before > Duration::from_millis(0) {
             tokio::time::sleep(delay_before).await;
@@ -836,11 +892,6 @@ impl Device {
             .jsonrpc_client
             .call("drag", serde_json::json!([sx, sy, ex, ey, duration_secs]))
             .await?;
-
-        // 应用操作后延迟
-        let settings = self.settings.read().unwrap();
-        let delay_after = settings.operation_delay_after;
-        drop(settings);
 
         if delay_after > Duration::from_millis(0) {
             tokio::time::sleep(delay_after).await;
@@ -1002,8 +1053,9 @@ impl Device {
     /// }
     /// ```
     pub fn set_wait_timeout(&self, timeout: Duration) {
-        let mut settings = self.settings.write().unwrap();
-        settings.set_wait_timeout(timeout);
+        self.with_settings_write(|settings| {
+            settings.set_wait_timeout(timeout);
+        });
     }
 
     /// 获取等待超时时间
@@ -1028,8 +1080,7 @@ impl Device {
     /// }
     /// ```
     pub fn get_wait_timeout(&self) -> Duration {
-        let settings = self.settings.read().unwrap();
-        settings.wait_timeout
+        self.with_settings_read(|settings| settings.wait_timeout)
     }
 
     /// 获取轮询间隔
@@ -1052,8 +1103,7 @@ impl Device {
     /// }
     /// ```
     pub fn get_polling_interval(&self) -> Duration {
-        let settings = self.settings.read().unwrap();
-        settings.polling_interval
+        self.with_settings_read(|settings| settings.polling_interval)
     }
 
     /// 轮询等待条件满足（辅助函数）
@@ -1147,10 +1197,7 @@ impl Device {
     pub async fn press(&self, key: crate::key::Key) -> Result<()> {
         debug!("按下按键: {:?}", key);
 
-        // 应用操作前延迟
-        let settings = self.settings.read().unwrap();
-        let delay_before = settings.operation_delay_before;
-        drop(settings);
+        let (delay_before, delay_after) = self.operation_delays();
 
         if delay_before > Duration::from_millis(0) {
             tokio::time::sleep(delay_before).await;
@@ -1162,11 +1209,6 @@ impl Device {
             .jsonrpc_client
             .call("pressKey", serde_json::json!([key_name]))
             .await?;
-
-        // 应用操作后延迟
-        let settings = self.settings.read().unwrap();
-        let delay_after = settings.operation_delay_after;
-        drop(settings);
 
         if delay_after > Duration::from_millis(0) {
             tokio::time::sleep(delay_after).await;
@@ -1202,10 +1244,7 @@ impl Device {
     pub async fn press_keycode(&self, keycode: u32) -> Result<()> {
         debug!("按下键码: {}", keycode);
 
-        // 应用操作前延迟
-        let settings = self.settings.read().unwrap();
-        let delay_before = settings.operation_delay_before;
-        drop(settings);
+        let (delay_before, delay_after) = self.operation_delays();
 
         if delay_before > Duration::from_millis(0) {
             tokio::time::sleep(delay_before).await;
@@ -1216,11 +1255,6 @@ impl Device {
             .jsonrpc_client
             .call("pressKeyCode", serde_json::json!([keycode]))
             .await?;
-
-        // 应用操作后延迟
-        let settings = self.settings.read().unwrap();
-        let delay_after = settings.operation_delay_after;
-        drop(settings);
 
         if delay_after > Duration::from_millis(0) {
             tokio::time::sleep(delay_after).await;
@@ -1625,6 +1659,7 @@ impl Device {
     }
 
     async fn resolve_launchable_activity(&self, package: &str) -> Result<String> {
+        Self::ensure_valid_package_name(package)?;
         const RESOLVE_EXIT_MARKER: &str = "__U2_RESOLVE_ACTIVITY_EXIT_CODE__:";
         let command = format!(
             "cmd package resolve-activity --brief {} 2>&1; echo {}$?",
@@ -1689,6 +1724,10 @@ impl Device {
     pub async fn app_start(&self, package: &str, activity: Option<&str>) -> Result<()> {
         debug!("启动应用: {} {:?}", package, activity);
         const APP_START_EXIT_MARKER: &str = "__U2_APP_START_EXIT_CODE__:";
+        Self::ensure_valid_package_name(package)?;
+        if let Some(act) = activity {
+            Self::ensure_valid_activity_name(act)?;
+        }
 
         if activity.is_some() && !self.is_package_installed(package).await? {
             return Err(Error::AppNotInstalled(package.to_string()));
@@ -1771,6 +1810,7 @@ impl Device {
     /// ```
     pub async fn app_stop(&self, package: &str) -> Result<()> {
         debug!("停止应用: {}", package);
+        Self::ensure_valid_package_name(package)?;
 
         // 执行 am force-stop 命令
         let command = format!("am force-stop {}", package);
@@ -1809,6 +1849,7 @@ impl Device {
     /// ```
     pub async fn app_clear(&self, package: &str) -> Result<()> {
         debug!("清除应用数据: {}", package);
+        Self::ensure_valid_package_name(package)?;
 
         // 执行 pm clear 命令
         let command = format!("pm clear {}", package);
@@ -2002,6 +2043,7 @@ impl Device {
     where
         T: Into<Option<Duration>>,
     {
+        Self::ensure_valid_package_name(package)?;
         let timeout = timeout.into().unwrap_or_else(|| self.get_wait_timeout());
         debug!("等待应用启动: {}, 超时: {:?}", package, timeout);
 
@@ -2040,6 +2082,7 @@ impl Device {
     /// - 如果应用未运行，返回 `Error::AppNotRunning`
     /// - 如果获取失败，返回 `Error::Adb`
     async fn get_app_pid(&self, package: &str) -> Result<u32> {
+        Self::ensure_valid_package_name(package)?;
         // 使用 pidof 命令获取 PID
         let command = format!("pidof {}", package);
         let output = self.adb_client.shell(&self.serial, &command, None).await?;
