@@ -8,6 +8,7 @@ use adb_client::server_device::ADBServerDevice;
 use adb_client::ADBDeviceExt;
 use log::{debug, info, warn};
 use std::net::{Ipv4Addr, SocketAddrV4};
+use std::process::Command;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
@@ -495,6 +496,26 @@ impl AdbClient {
 
         info!("端口转发成功");
         Ok(())
+    }
+
+    pub(crate) fn remove_forward_blocking(&self, serial: &str, local: u16) -> Result<()> {
+        let output = Command::new("adb")
+            .args(["-s", serial, "forward", "--remove", &format!("tcp:{local}")])
+            .output()
+            .map_err(|e| Error::Adb(format!("移除端口转发失败: {}", e)))?;
+
+        if output.status.success() {
+            return Ok(());
+        }
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Err(Error::Adb(format!(
+            "移除端口转发失败: status={}, stdout={}, stderr={}",
+            output.status,
+            stdout.trim(),
+            stderr.trim()
+        )))
     }
 }
 

@@ -16,9 +16,116 @@
 
 #![cfg(feature = "atx-agent-install")]
 
-use uiautomator::Device;
+use std::time::Duration;
+use uiautomator::{AtxAgentClient, Device};
 
 mod common;
+
+async fn atx_client(device: &Device) -> uiautomator::Result<AtxAgentClient> {
+    AtxAgentClient::new(device.serial().to_string(), device.adb_client().clone()).await
+}
+
+async fn atx_running(device: &Device) -> uiautomator::Result<bool> {
+    atx_client(device).await?.check_atx_agent_status().await
+}
+
+async fn wait_atx_ready(device: &Device) -> uiautomator::Result<()> {
+    atx_client(device)
+        .await?
+        .wait_for_atx_agent_ready(Some(Duration::from_secs(15)))
+        .await
+}
+
+async fn restore_atx_state(
+    device: &Device,
+    installed_before: bool,
+    running_before: bool,
+) -> uiautomator::Result<()> {
+    if installed_before {
+        if running_before {
+            device.start_atx_agent().await?;
+            wait_atx_ready(device).await?;
+        } else {
+            let _ = device.stop_atx_agent().await;
+        }
+        return Ok(());
+    }
+
+    let _ = device.stop_atx_agent().await;
+    let adb = device.adb_client();
+    let serial = device.serial();
+    let _ = adb
+        .shell(
+            serial,
+            "rm -f /data/local/tmp/atx-agent",
+            Some(Duration::from_secs(10)),
+        )
+        .await;
+    let _ = adb
+        .shell(
+            serial,
+            "pm uninstall com.github.uiautomator",
+            Some(Duration::from_secs(30)),
+        )
+        .await;
+    let _ = adb
+        .shell(
+            serial,
+            "pm uninstall com.github.uiautomator.test",
+            Some(Duration::from_secs(30)),
+        )
+        .await;
+    Ok(())
+}
+
+struct AtxStateGuard {
+    device: Device,
+    installed_before: bool,
+    running_before: bool,
+}
+
+impl AtxStateGuard {
+    async fn capture(device: &Device) -> Self {
+        let installed_before = device.check_atx_agent_installed().await.unwrap_or(false);
+        let running_before = if installed_before {
+            atx_running(device).await.unwrap_or(false)
+        } else {
+            false
+        };
+
+        Self {
+            device: device.clone(),
+            installed_before,
+            running_before,
+        }
+    }
+}
+
+impl Drop for AtxStateGuard {
+    fn drop(&mut self) {
+        let device = self.device.clone();
+        let installed_before = self.installed_before;
+        let running_before = self.running_before;
+
+        std::thread::spawn(move || {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            match runtime {
+                Ok(runtime) => {
+                    let _ = runtime.block_on(async {
+                        restore_atx_state(&device, installed_before, running_before).await
+                    });
+                }
+                Err(error) => {
+                    eprintln!("failed to create runtime for ATX state restore: {error}");
+                }
+            }
+        })
+        .join()
+        .ok();
+    }
+}
 
 /// 测试 ATX-Agent 安装流程
 #[tokio::test]
@@ -28,6 +135,7 @@ async fn test_atx_agent_installation() {
 
     // 连接到设备（Direct 模式）
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
+    let _state_guard = AtxStateGuard::capture(&device).await;
 
     // 检查是否已安装
     let installed_before = device
@@ -69,6 +177,7 @@ async fn test_atx_agent_service_management() {
 
     // 连接到设备
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
+    let _state_guard = AtxStateGuard::capture(&device).await;
 
     // 确保已安装
     let installed = device
@@ -89,7 +198,7 @@ async fn test_atx_agent_service_management() {
     device.start_atx_agent().await.expect("启动服务失败");
 
     // 等待一下确保服务启动
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    wait_atx_ready(&device).await.expect("等待服务就绪失败");
 
     // 测试停止服务
     println!("测试停止服务...");
@@ -110,6 +219,7 @@ async fn test_connect_with_atx_agent_mode() {
 
     // 先确保 ATX-Agent 已安装
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
+    let _state_guard = AtxStateGuard::capture(&device).await;
 
     let installed = device
         .check_atx_agent_installed()
@@ -148,6 +258,7 @@ async fn test_version_check() {
 
     // 连接到设备
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
+    let _state_guard = AtxStateGuard::capture(&device).await;
 
     // 安装 ATX-Agent
     device
@@ -170,6 +281,7 @@ async fn test_force_reinstall() {
 
     // 连接到设备
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
+    let _state_guard = AtxStateGuard::capture(&device).await;
 
     // 第一次安装
     println!("第一次安装...");

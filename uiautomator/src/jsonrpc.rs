@@ -75,6 +75,22 @@ pub struct JsonRpcClient {
     settings: Arc<RwLock<Settings>>,
 }
 
+impl Drop for JsonRpcClient {
+    fn drop(&mut self) {
+        if let Some(local_port) = self.local_port {
+            if let Err(error) = self
+                .adb_client
+                .remove_forward_blocking(&self.device_serial, local_port)
+            {
+                warn!(
+                    "failed to remove JSON-RPC port forward for {}:{}: {}",
+                    self.device_serial, local_port, error
+                );
+            }
+        }
+    }
+}
+
 /// JSON-RPC 请求
 #[derive(Debug, Serialize)]
 struct JsonRpcRequest {

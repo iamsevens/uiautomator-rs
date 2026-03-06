@@ -141,6 +141,14 @@
 - 元素不存在与协议异常区分错误类型
 - 关键操作返回值做语义校验，避免“调用成功但无效”
 
+Selector 后置校验边界：
+
+- 与 Python `uiautomator2` 保持一致心智，selector 的主语义解析仍以设备侧 `objInfo(selector)` 为准，客户端不复制一套完整 `UiSelector` 引擎。
+- 客户端只对 `ElementInfo` 可以直接表达的维度做防御性复核：精确匹配、contains、starts_with、布尔属性，以及 `text/class_name/description/package_name/resource_id` 的 regex 匹配。
+- regex 复核采用保守策略：只有当 Rust `regex` 能成功编译对应模式时才执行本地匹配；如果模式超出 Rust `regex` 能力范围，则跳过本地复核，避免把服务端可能接受的 selector 误判为未命中。
+- `index`、`instance`、`child/sibling` 等层级语义继续由服务端负责，因为 `ElementInfo` 不包含足够的结构信息；如果在客户端重放这些规则，会演化成第二套可能漂移的 selector 解释器。
+- root fallback 检测保留在客户端，用于拦截服务端返回根节点但调用方给了明确 selector 约束的明显假阳性场景。
+
 ### 5.7 `error.rs`（统一错误域）
 
 职责：

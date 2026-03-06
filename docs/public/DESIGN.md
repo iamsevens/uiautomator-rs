@@ -102,6 +102,14 @@ Design principles:
 - Element operations and metadata access.
 - Operation result semantics validation (avoid silent success).
 
+Selector post-validation boundary:
+
+- Keep the same mental model as Python `uiautomator2`: device-side `objInfo(selector)` remains the authority for full selector resolution, and the client does not reimplement a full `UiSelector` engine.
+- The client only performs defensive revalidation for dimensions that `ElementInfo` can express directly: exact match, contains, starts_with, boolean flags, and regex-backed checks for `text`, `class_name`, `description`, `package_name`, and `resource_id`.
+- Regex revalidation is conservative: it only runs when the pattern can be compiled by Rust `regex`; unsupported patterns are skipped locally to avoid false negatives when Android-side selector syntax is broader than Rust's regex engine.
+- `index`, `instance`, and `child`/`sibling` hierarchy semantics stay server-authoritative because `ElementInfo` does not contain enough structure to verify them correctly; replaying them client-side would create a second selector engine that can drift from upstream behavior.
+- Root-fallback detection stays on the client side to catch the obvious false-positive case where the server returns the root node even though the caller provided specific selector constraints.
+
 ### `error.rs`
 
 - Centralized error domains, codes, and context fields.

@@ -4,6 +4,7 @@
 
 use crate::{Device, ElementInfo, Error, Rect, Result, Selector};
 use log::debug;
+use regex::Regex;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -130,6 +131,25 @@ impl UiObject {
                     method, other
                 );
                 Ok(())
+            }
+        }
+    }
+
+    fn element_not_found(selector: &Selector) -> Error {
+        Error::ElementNotFound {
+            selector: format!("{:?}", selector),
+        }
+    }
+
+    fn matches_selector_regex(field: &str, candidate: &str, pattern: &str) -> bool {
+        match Regex::new(pattern) {
+            Ok(regex) => regex.is_match(candidate),
+            Err(err) => {
+                debug!(
+                    "Skip local selector validation for {} because regex {:?} is not supported by Rust regex: {}",
+                    field, pattern, err
+                );
+                true
             }
         }
     }
@@ -433,9 +453,7 @@ impl UiObject {
         if is_likely_root {
             // 如果选择器指定了具体的属性，但返回的是根元素，说明未找到
             if self.has_specific_selector() {
-                return Err(Error::ElementNotFound {
-                    selector: format!("{:?}", self.selector),
-                });
+                return Err(Self::element_not_found(&self.selector));
             }
         }
 
@@ -462,18 +480,30 @@ impl UiObject {
             // 验证 text_starts_with
             if let Some(ref text_starts_with) = self.selector.text_starts_with {
                 if !element_info.text.starts_with(text_starts_with) {
-                    return Err(Error::ElementNotFound {
-                        selector: format!("{:?}", self.selector),
-                    });
+                    return Err(Self::element_not_found(&self.selector));
+                }
+            }
+
+            if let Some(ref text_matches) = self.selector.text_matches {
+                if !Self::matches_selector_regex("textMatches", &element_info.text, text_matches) {
+                    return Err(Self::element_not_found(&self.selector));
                 }
             }
 
             // 验证 resource_id
             if let Some(ref resource_id) = self.selector.resource_id {
                 if element_info.resource_id != *resource_id {
-                    return Err(Error::ElementNotFound {
-                        selector: format!("{:?}", self.selector),
-                    });
+                    return Err(Self::element_not_found(&self.selector));
+                }
+            }
+
+            if let Some(ref resource_id_matches) = self.selector.resource_id_matches {
+                if !Self::matches_selector_regex(
+                    "resourceIdMatches",
+                    &element_info.resource_id,
+                    resource_id_matches,
+                ) {
+                    return Err(Self::element_not_found(&self.selector));
                 }
             }
 
@@ -483,6 +513,16 @@ impl UiObject {
                     return Err(Error::ElementNotFound {
                         selector: format!("{:?}", self.selector),
                     });
+                }
+            }
+
+            if let Some(ref class_name_matches) = self.selector.class_name_matches {
+                if !Self::matches_selector_regex(
+                    "classNameMatches",
+                    &element_info.class_name,
+                    class_name_matches,
+                ) {
+                    return Err(Self::element_not_found(&self.selector));
                 }
             }
 
@@ -516,11 +556,31 @@ impl UiObject {
                 }
             }
 
+            if let Some(ref description_matches) = self.selector.description_matches {
+                if !Self::matches_selector_regex(
+                    "descriptionMatches",
+                    &element_info.content_description,
+                    description_matches,
+                ) {
+                    return Err(Self::element_not_found(&self.selector));
+                }
+            }
+
             if let Some(ref package_name) = self.selector.package_name {
                 if element_info.package_name != *package_name {
                     return Err(Error::ElementNotFound {
                         selector: format!("{:?}", self.selector),
                     });
+                }
+            }
+
+            if let Some(ref package_name_matches) = self.selector.package_name_matches {
+                if !Self::matches_selector_regex(
+                    "packageNameMatches",
+                    &element_info.package_name,
+                    package_name_matches,
+                ) {
+                    return Err(Self::element_not_found(&self.selector));
                 }
             }
 
@@ -852,6 +912,28 @@ impl UiObject {
 mod tests {
     use super::*;
 
+    fn sample_element_info() -> ElementInfo {
+        ElementInfo {
+            text: "Settings".to_string(),
+            content_description: "Open Settings".to_string(),
+            class_name: "android.widget.TextView".to_string(),
+            package_name: "com.example.settings".to_string(),
+            resource_id: "com.example:id/settings".to_string(),
+            bounds: Rect::new(10, 20, 110, 220),
+            visible_bounds: Rect::new(10, 20, 110, 220),
+            clickable: true,
+            enabled: true,
+            focusable: true,
+            focused: false,
+            scrollable: false,
+            long_clickable: false,
+            checkable: false,
+            checked: false,
+            selected: false,
+            child_count: 0,
+        }
+    }
+
     #[test]
     fn test_uiobject_structure() {
         // 测试 UiObject 的基本结构
@@ -917,6 +999,59 @@ mod tests {
 
         // 兼容不同实现：非布尔结果不会被误判为失败
         assert!(UiObject::ensure_action_rpc_result("setText", serde_json::json!(null)).is_ok());
+    }
+
+    #[test]
+    fn test_matches_selector_regex_matches_supported_patterns() {
+        let info = sample_element_info();
+
+        assert!(UiObject::matches_selector_regex(
+            "textMatches",
+            &info.text,
+            "^Settings$",
+        ));
+        assert!(UiObject::matches_selector_regex(
+            "classNameMatches",
+            &info.class_name,
+            r"^android\.widget\..+$",
+        ));
+        assert!(UiObject::matches_selector_regex(
+            "descriptionMatches",
+            &info.content_description,
+            "^Open.*",
+        ));
+        assert!(UiObject::matches_selector_regex(
+            "packageNameMatches",
+            &info.package_name,
+            r"^com\.example\..+$",
+        ));
+        assert!(UiObject::matches_selector_regex(
+            "resourceIdMatches",
+            &info.resource_id,
+            r"^com\.example:id/.+$",
+        ));
+    }
+
+    #[test]
+    fn test_matches_selector_regex_rejects_mismatch() {
+        let info = sample_element_info();
+
+        assert!(!UiObject::matches_selector_regex(
+            "textMatches",
+            &info.text,
+            "^Home$",
+        ));
+    }
+
+    #[test]
+    fn test_matches_selector_regex_skips_incompatible_patterns() {
+        let info = sample_element_info();
+
+        assert!(UiObject::matches_selector_regex(
+            "textMatches",
+            &info.text,
+            r"(?<=Open )Settings",
+        ));
     }
 
     // 测试需求 4.3: 元素存在性检查

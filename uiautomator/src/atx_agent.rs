@@ -94,6 +94,24 @@ pub struct AtxAgentClient {
     http_client: reqwest::Client,
 }
 
+impl Drop for AtxAgentClient {
+    fn drop(&mut self) {
+        if self.local_port == 0 {
+            return;
+        }
+
+        if let Err(error) = self
+            .adb_client
+            .remove_forward_blocking(&self.device_serial, self.local_port)
+        {
+            warn!(
+                "failed to remove ATX-Agent port forward for {}:{}: {}",
+                self.device_serial, self.local_port, error
+            );
+        }
+    }
+}
+
 impl AtxAgentClient {
     fn unique_temp_file_path(prefix: &str, suffix: &str) -> std::path::PathBuf {
         let timestamp = SystemTime::now()
