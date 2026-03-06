@@ -84,7 +84,7 @@ jobs:
 
   regression:
     needs: prepare-targets
-    runs-on: [self-hosted, windows]
+    runs-on: [self-hosted, windows, gui]
     timeout-minutes: 360
     env:
       ANDROID_HOME: ${{ vars.ANDROID_SDK_ROOT }}

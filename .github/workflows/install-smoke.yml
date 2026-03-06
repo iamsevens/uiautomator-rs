@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   smoke:
-    runs-on: [self-hosted, windows]
+    runs-on: [self-hosted, windows, gui]
     timeout-minutes: 120
     env:
       ANDROID_HOME: ${{ vars.ANDROID_SDK_ROOT }}
