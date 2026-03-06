@@ -10,6 +10,21 @@
 ### 说明
 - 暂无未发布变更。
 
+## [0.1.3] - 2026-03-06
+
+### 修复
+- 加强 ADB 超时 shell 并发控制，降低超时 shell 堆积导致的 runtime 阻塞风险。
+- `JsonRpcClient` 与 `AtxAgentClient` 改为使用唯一临时文件路径并在推送后清理，避免临时文件冲突和非 UTF-8 路径问题。
+- `Settings` 对 `max_retry = 0` 和 `polling_interval = 0` 做防御性修正，避免无效配置把重试/轮询逻辑带入异常状态。
+- `Device` 对点击、长按及回退 `swipe` 的 JSON-RPC 返回值做显式校验，`false` 视为动作失败而不是静默成功。
+- `UiObject` 补齐更多 selector 字段校验，并在元素级点击/长按前显式等待目标出现，减少误命中根节点和伪成功。
+
+### 回归
+- Nightly 设备回归链路切换到 `gui` runner 并改为本地源码展开后，已在：
+  - `ld-emulator-5554`
+  - `mumu-16384`
+  完整通过一轮 `Nightly Device Regression`
+
 ## [0.1.2] - 2026-03-05
 
 ### 修复

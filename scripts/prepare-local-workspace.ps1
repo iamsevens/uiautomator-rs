@@ -1,5 +1,5 @@
 param(
-    [string]$SourceRepoRoot = "D:\dev\uiautomator",
+    [string]$SourceRepoRoot = (Split-Path -Parent $PSScriptRoot),
 
     [Parameter(Mandatory = $true)]
     [string]$DestinationRepoRoot,
