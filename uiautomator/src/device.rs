@@ -204,7 +204,10 @@ impl Device {
             return Ok(());
         }
 
-        Err(Error::InvalidArgument(format!("鏃犳晥鐨勫寘鍚? {}", package)))
+        Err(Error::InvalidArgument(format!(
+            "鏃犳晥鐨勫寘鍚? {}",
+            package
+        )))
     }
 
     fn ensure_valid_activity_name(activity: &str) -> Result<()> {

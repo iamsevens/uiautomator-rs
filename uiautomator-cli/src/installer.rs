@@ -191,10 +191,22 @@ impl Installer {
                 Ok(s)
             }
             None => {
-                // 自动选择第一个设备
-                let first_device = devices[0].clone();
-                info!("自动选择第一个设备: {}", first_device);
-                Ok(first_device)
+                if devices.len() == 1 {
+                    let only_device = devices[0].clone();
+                    info!("自动选择唯一设备: {}", only_device);
+                    return Ok(only_device);
+                }
+
+                Err(anyhow!(
+                    "检测到多个设备，请显式指定序列号（--serial）。\n\n\
+                    可用设备:\n{}\n\n\
+                    示例: uiautomator-cli init --serial <device-serial>",
+                    devices
+                        .iter()
+                        .map(|d| format!("  - {}", d))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                ))
             }
         }
     }
@@ -671,15 +683,29 @@ impl Installer {
 mod tests {
     use super::*;
 
-    /// 测试：device_serial() 方法应该返回正确的序列号
     #[test]
-    fn test_device_serial_getter() {
-        let adb_client = Arc::new(unsafe { std::mem::zeroed() });
-        let installer = Installer {
-            adb_client,
-            device_serial: "test-device-123".to_string(),
-        };
+    fn test_select_device_with_single_connected_device() {
+        let devices = vec!["device-001".to_string()];
+        let selected = Installer::select_device(None, &devices).expect("should select device");
+        assert_eq!(selected, "device-001");
+    }
 
-        assert_eq!(installer.device_serial(), "test-device-123");
+    #[test]
+    fn test_select_device_without_serial_when_multiple_devices_returns_error() {
+        let devices = vec!["device-001".to_string(), "device-002".to_string()];
+        let result = Installer::select_device(None, &devices);
+        assert!(result.is_err());
+        let message = result.unwrap_err().to_string();
+        assert!(message.contains("--serial"));
+        assert!(message.contains("device-001"));
+        assert!(message.contains("device-002"));
+    }
+
+    #[test]
+    fn test_select_device_with_explicit_serial() {
+        let devices = vec!["device-001".to_string(), "device-002".to_string()];
+        let selected = Installer::select_device(Some("device-002".to_string()), &devices)
+            .expect("should use specified serial");
+        assert_eq!(selected, "device-002");
     }
 }

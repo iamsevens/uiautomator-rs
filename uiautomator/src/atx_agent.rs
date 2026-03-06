@@ -12,6 +12,7 @@ use crate::adb::AdbClient;
 use crate::error::{Error, Result};
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
+use std::net::{Ipv4Addr, TcpListener};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -127,9 +128,6 @@ impl AtxAgentClient {
     pub async fn new(device_serial: String, adb_client: Arc<AdbClient>) -> Result<Self> {
         info!("创建 ATX-Agent 客户端: {}", device_serial);
 
-        let local_port = ATX_AGENT_PORT;
-        let base_url = format!("http://127.0.0.1:{}", local_port);
-
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -138,8 +136,8 @@ impl AtxAgentClient {
         let mut client = Self {
             device_serial,
             adb_client,
-            local_port,
-            base_url,
+            local_port: 0,
+            base_url: String::new(),
             http_client,
         };
 
@@ -471,19 +469,53 @@ impl AtxAgentClient {
     // 内部方法
     // ========================================================================
 
+    fn allocate_local_forward_port() -> Result<u16> {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .map_err(|e| Error::Adb(format!("failed to bind local temporary port: {}", e)))?;
+        let local_port = listener
+            .local_addr()
+            .map_err(|e| Error::Adb(format!("failed to inspect local temporary port: {}", e)))?
+            .port();
+        drop(listener);
+        Ok(local_port)
+    }
+
     /// 建立 ADB 端口转发（7912 -> 7912）
     async fn setup_port_forward(&mut self) -> Result<()> {
-        info!(
-            "建立 ADB 端口转发: {} -> {}",
-            self.local_port, ATX_AGENT_PORT
-        );
+        const MAX_PORT_FORWARD_ATTEMPTS: usize = 10;
+        let mut last_error_message = String::new();
 
-        self.adb_client
-            .forward(&self.device_serial, self.local_port, ATX_AGENT_PORT)
-            .await
-            .map_err(|e| Error::Adb(format!("端口转发失败: {}", e)))?;
+        for attempt in 1..=MAX_PORT_FORWARD_ATTEMPTS {
+            let local_port = Self::allocate_local_forward_port()?;
+            info!(
+                "建立 ADB 端口转发: {} -> {} (attempt {}/{})",
+                local_port, ATX_AGENT_PORT, attempt, MAX_PORT_FORWARD_ATTEMPTS
+            );
 
-        Ok(())
+            match self
+                .adb_client
+                .forward(&self.device_serial, local_port, ATX_AGENT_PORT)
+                .await
+            {
+                Ok(()) => {
+                    self.local_port = local_port;
+                    self.base_url = format!("http://127.0.0.1:{}", local_port);
+                    return Ok(());
+                }
+                Err(error) => {
+                    last_error_message = error.to_string();
+                    warn!(
+                        "port forward failed on local port {}, retrying: {}",
+                        local_port, last_error_message
+                    );
+                }
+            }
+        }
+
+        Err(Error::Adb(format!(
+            "failed to establish ATX-Agent port forward after {} attempts: {}",
+            MAX_PORT_FORWARD_ATTEMPTS, last_error_message
+        )))
     }
 
     /// 发送 GET 请求

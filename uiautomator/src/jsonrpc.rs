@@ -9,6 +9,7 @@ use crate::error::{Error, Result};
 use crate::settings::Settings;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
+use std::net::{Ipv4Addr, TcpListener};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -857,24 +858,53 @@ impl JsonRpcClient {
         Err(Error::Timeout)
     }
 
+    fn allocate_local_forward_port() -> Result<u16> {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
+            .map_err(|e| Error::Adb(format!("failed to bind local temporary port: {}", e)))?;
+        let local_port = listener
+            .local_addr()
+            .map_err(|e| Error::Adb(format!("failed to inspect local temporary port: {}", e)))?
+            .port();
+        drop(listener);
+        Ok(local_port)
+    }
+
     /// 建立 ADB 端口转发（Direct 模式专用）
     async fn setup_port_forward(&mut self) -> Result<()> {
-        // 使用随机本地端口（从 10000 开始）
-        let local_port = 10000 + (std::process::id() % 10000) as u16;
+        const MAX_PORT_FORWARD_ATTEMPTS: usize = 10;
+        let mut last_error_message = String::new();
 
-        info!(
-            "建立端口转发: localhost:{} -> device:{}",
-            local_port, UIAUTOMATOR_PORT
-        );
+        for attempt in 1..=MAX_PORT_FORWARD_ATTEMPTS {
+            let local_port = Self::allocate_local_forward_port()?;
+            info!(
+                "建立端口转发: localhost:{} -> device:{} (attempt {}/{})",
+                local_port, UIAUTOMATOR_PORT, attempt, MAX_PORT_FORWARD_ATTEMPTS
+            );
 
-        self.adb_client
-            .forward(&self.device_serial, local_port, UIAUTOMATOR_PORT)
-            .await?;
+            match self
+                .adb_client
+                .forward(&self.device_serial, local_port, UIAUTOMATOR_PORT)
+                .await
+            {
+                Ok(()) => {
+                    self.local_port = Some(local_port);
+                    info!("端口转发已建立");
+                    return Ok(());
+                }
+                Err(error) => {
+                    last_error_message = error.to_string();
+                    warn!(
+                        "port forward failed on local port {}, retrying: {}",
+                        local_port, last_error_message
+                    );
+                }
+            }
+        }
 
-        self.local_port = Some(local_port);
-
-        info!("端口转发已建立");
-        Ok(())
+        Err(Error::Adb(format!(
+            "failed to establish local port forward after {} attempts: {}",
+            MAX_PORT_FORWARD_ATTEMPTS, last_error_message
+        )))
     }
 
     /// 检查服务是否存活（Direct 模式专用）
