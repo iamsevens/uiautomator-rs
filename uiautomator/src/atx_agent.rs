@@ -131,7 +131,7 @@ impl AtxAgentClient {
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .map_err(|e| Error::Http(e))?;
+            .map_err(Error::Http)?;
 
         let mut client = Self {
             device_serial,
@@ -217,14 +217,14 @@ impl AtxAgentClient {
         debug!("获取 ATX-Agent 版本");
 
         let response = self.get("/version").await?;
-        let body = response.text().await.map_err(|e| Error::Http(e))?;
+        let body = response.text().await.map_err(Error::Http)?;
 
         Self::parse_version_response(&body)
     }
 
     async fn version_with_timeout(&self, timeout: Duration) -> Result<String> {
         let response = self.get_with_timeout("/version", timeout).await?;
-        let body = response.text().await.map_err(|e| Error::Http(e))?;
+        let body = response.text().await.map_err(Error::Http)?;
         Self::parse_version_response(&body)
     }
 
@@ -255,7 +255,7 @@ impl AtxAgentClient {
         debug!("获取设备信息");
 
         let response = self.get("/info").await?;
-        let info: AtxDeviceInfo = response.json().await.map_err(|e| Error::Http(e))?;
+        let info: AtxDeviceInfo = response.json().await.map_err(Error::Http)?;
 
         Ok(info)
     }
@@ -315,7 +315,7 @@ impl AtxAgentClient {
             .delete(&url)
             .send()
             .await
-            .map_err(|e| Error::Http(e))?;
+            .map_err(Error::Http)?;
 
         Ok(())
     }
@@ -347,7 +347,7 @@ impl AtxAgentClient {
         debug!("检查 uiautomator2 服务状态");
 
         let response = self.get("/uiautomator").await?;
-        let status: UiAutomatorStatus = response.json().await.map_err(|e| Error::Http(e))?;
+        let status: UiAutomatorStatus = response.json().await.map_err(Error::Http)?;
 
         Ok(status)
     }
@@ -382,7 +382,7 @@ impl AtxAgentClient {
 
         let body = serde_json::json!({});
         let response = self.post("/dump/hierarchy", body).await?;
-        let text = response.text().await.map_err(|e| Error::Http(e))?;
+        let text = response.text().await.map_err(Error::Http)?;
 
         Ok(text)
     }
@@ -444,7 +444,7 @@ impl AtxAgentClient {
 
         // 通过 /jsonrpc/0 转发到 uiautomator2
         let response = self.post("/jsonrpc/0", request).await?;
-        let json_response: serde_json::Value = response.json().await.map_err(|e| Error::Http(e))?;
+        let json_response: serde_json::Value = response.json().await.map_err(Error::Http)?;
 
         // 解析响应
         if let Some(error) = json_response.get("error") {
@@ -459,7 +459,7 @@ impl AtxAgentClient {
         }
 
         if let Some(result) = json_response.get("result") {
-            return serde_json::from_value(result.clone()).map_err(|e| Error::Serialization(e));
+            return serde_json::from_value(result.clone()).map_err(Error::Serialization);
         }
 
         Err(Error::JsonRpc("Invalid JSON-RPC response".to_string()))
@@ -533,12 +533,10 @@ impl AtxAgentClient {
             .timeout(timeout)
             .send()
             .await
-            .map_err(|e| Error::Http(e))?;
+            .map_err(Error::Http)?;
 
         if !response.status().is_success() {
-            return Err(Error::Http(reqwest::Error::from(
-                response.error_for_status().unwrap_err(),
-            )));
+            return Err(Error::Http(response.error_for_status().unwrap_err()));
         }
 
         Ok(response)
@@ -555,12 +553,10 @@ impl AtxAgentClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| Error::Http(e))?;
+            .map_err(Error::Http)?;
 
         if !response.status().is_success() {
-            return Err(Error::Http(reqwest::Error::from(
-                response.error_for_status().unwrap_err(),
-            )));
+            return Err(Error::Http(response.error_for_status().unwrap_err()));
         }
 
         Ok(response)
@@ -1102,10 +1098,10 @@ impl AtxAgentClient {
                 }
             }
 
-            return Err(Error::Adb(format!(
+            Err(Error::Adb(format!(
                 "failed to push a usable atx-agent binary; candidates tried: {}",
                 failures.join(" | ")
-            )));
+            )))
         }
 
         #[cfg(not(feature = "atx-agent-install"))]
@@ -1168,7 +1164,7 @@ impl AtxAgentClient {
         let temp_dir = std::env::temp_dir();
         let temp_path = temp_dir.join(name);
 
-        std::fs::write(&temp_path, apk_data).map_err(|e| Error::Io(e))?;
+        std::fs::write(&temp_path, apk_data).map_err(Error::Io)?;
 
         // 推送到设备
         let device_path = format!("/data/local/tmp/{}", name);

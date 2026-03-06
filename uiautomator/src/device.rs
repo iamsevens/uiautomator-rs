@@ -3117,7 +3117,7 @@ mod tests {
     fn test_server_mode_clone_copy() {
         let mode1 = ServerMode::Direct;
         let mode2 = mode1; // Copy
-        let mode3 = mode1.clone(); // Clone
+        let mode3 = mode1;
 
         assert_eq!(mode1, mode2);
         assert_eq!(mode1, mode3);

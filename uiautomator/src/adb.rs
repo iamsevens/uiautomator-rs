@@ -344,10 +344,10 @@ impl AdbClient {
             let mut device = ADBServerDevice::new(serial, Some(addr));
 
             // 读取本地文件
-            let mut file = File::open(&local).map_err(|e| Error::Io(e))?;
+            let mut file = File::open(&local).map_err(Error::Io)?;
 
             let mut content = Vec::new();
-            file.read_to_end(&mut content).map_err(|e| Error::Io(e))?;
+            file.read_to_end(&mut content).map_err(Error::Io)?;
 
             // 推送文件
             device
@@ -411,9 +411,9 @@ impl AdbClient {
                 .map_err(|e| Error::Adb(format!("拉取文件失败: {}", e)))?;
 
             // 写入本地文件
-            let mut file = File::create(&local).map_err(|e| Error::Io(e))?;
+            let mut file = File::create(&local).map_err(Error::Io)?;
 
-            file.write_all(&content).map_err(|e| Error::Io(e))?;
+            file.write_all(&content).map_err(Error::Io)?;
 
             Ok::<(), Error>(())
         })

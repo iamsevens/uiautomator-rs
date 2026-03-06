@@ -24,7 +24,7 @@ mod common;
 #[tokio::test]
 #[ignore] // 需要真实设备，默认跳过
 async fn test_atx_agent_installation() {
-    common::init_logger();
+    common::init_test_env();
 
     // 连接到设备（Direct 模式）
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
@@ -65,7 +65,7 @@ async fn test_atx_agent_installation() {
 #[tokio::test]
 #[ignore] // 需要真实设备，默认跳过
 async fn test_atx_agent_service_management() {
-    common::init_logger();
+    common::init_test_env();
 
     // 连接到设备
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
@@ -106,7 +106,7 @@ async fn test_atx_agent_service_management() {
 #[tokio::test]
 #[ignore] // 需要真实设备，默认跳过
 async fn test_connect_with_atx_agent_mode() {
-    common::init_logger();
+    common::init_test_env();
 
     // 先确保 ATX-Agent 已安装
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
@@ -144,7 +144,7 @@ async fn test_connect_with_atx_agent_mode() {
 #[tokio::test]
 #[ignore] // 需要真实设备，默认跳过
 async fn test_version_check() {
-    common::init_logger();
+    common::init_test_env();
 
     // 连接到设备
     let device = Device::connect_quick(None).await.expect("无法连接到设备");
@@ -166,7 +166,7 @@ async fn test_version_check() {
 #[tokio::test]
 #[ignore] // 需要真实设备，默认跳过
 async fn test_force_reinstall() {
-    common::init_logger();
+    common::init_test_env();
 
     // 连接到设备
     let device = Device::connect_quick(None).await.expect("无法连接到设备");

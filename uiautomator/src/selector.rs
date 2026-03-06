@@ -145,7 +145,7 @@ pub struct Selector {
     /// 子元素/兄弟元素关系类型（"child" 或 "sibling"）
     pub(crate) child_or_sibling: Vec<String>,
     /// 子元素/兄弟元素选择器
-    pub(crate) child_or_sibling_selector: Vec<Box<Selector>>,
+    pub(crate) child_or_sibling_selector: Vec<Selector>,
 }
 
 impl Selector {
@@ -641,8 +641,7 @@ impl Selector {
     /// ```
     pub fn child(mut self, child_selector: Selector) -> Self {
         self.child_or_sibling.push("child".to_string());
-        self.child_or_sibling_selector
-            .push(Box::new(child_selector));
+        self.child_or_sibling_selector.push(child_selector);
         self
     }
 
@@ -663,8 +662,7 @@ impl Selector {
     /// ```
     pub fn sibling(mut self, sibling_selector: Selector) -> Self {
         self.child_or_sibling.push("sibling".to_string());
-        self.child_or_sibling_selector
-            .push(Box::new(sibling_selector));
+        self.child_or_sibling_selector.push(sibling_selector);
         self
     }
 

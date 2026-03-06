@@ -75,10 +75,7 @@ async fn resolve_test_device_serial() -> Option<String> {
 /// 检查是否有可用的测试设备
 pub async fn check_device_available() -> bool {
     let serial = resolve_test_device_serial().await;
-    match Device::connect(serial.as_deref()).await {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    Device::connect(serial.as_deref()).await.is_ok()
 }
 
 /// 连接到测试设备

@@ -57,7 +57,7 @@ async fn capture_debug_artifacts(device: &Device, label: &str) {
         .pull(
             device.serial(),
             &xml_remote,
-            &xml_local.to_string_lossy().to_string(),
+            xml_local.to_string_lossy().as_ref(),
         )
         .await;
     let _ = device
@@ -180,20 +180,18 @@ async fn try_open_input_forms_once(device: &Device) -> bool {
         .exists(Some(Duration::from_secs(2)))
         .await
         .unwrap_or(false)
-    {
-        if input_entry
+        && input_entry
             .click(Some(Duration::from_secs(5)), None)
             .await
             .is_ok()
+    {
+        let username = device.find(Selector::new().resource_id(INPUT_FORMS_USERNAME_ID));
+        if username
+            .exists(Some(Duration::from_secs(4)))
+            .await
+            .unwrap_or(false)
         {
-            let username = device.find(Selector::new().resource_id(INPUT_FORMS_USERNAME_ID));
-            if username
-                .exists(Some(Duration::from_secs(4)))
-                .await
-                .unwrap_or(false)
-            {
-                return true;
-            }
+            return true;
         }
     }
     let input_text_entry = device.find(Selector::new().text_contains("INPUT"));
@@ -201,20 +199,18 @@ async fn try_open_input_forms_once(device: &Device) -> bool {
         .exists(Some(Duration::from_secs(2)))
         .await
         .unwrap_or(false)
-    {
-        if input_text_entry
+        && input_text_entry
             .click(Some(Duration::from_secs(5)), None)
             .await
             .is_ok()
+    {
+        let username = device.find(Selector::new().resource_id(INPUT_FORMS_USERNAME_ID));
+        if username
+            .exists(Some(Duration::from_secs(4)))
+            .await
+            .unwrap_or(false)
         {
-            let username = device.find(Selector::new().resource_id(INPUT_FORMS_USERNAME_ID));
-            if username
-                .exists(Some(Duration::from_secs(4)))
-                .await
-                .unwrap_or(false)
-            {
-                return true;
-            }
+            return true;
         }
     }
     false
@@ -245,8 +241,8 @@ async fn dismiss_soft_keyboard_if_needed(device: &Device) {
         .unwrap_or(false)
     {
         if let Ok(info) = title.info().await {
-            let center_x = ((info.bounds.left + info.bounds.right) / 2) as u32;
-            let center_y = ((info.bounds.top + info.bounds.bottom) / 2) as u32;
+            let center_x = (info.bounds.left + info.bounds.right) / 2;
+            let center_y = (info.bounds.top + info.bounds.bottom) / 2;
             let _ = device.click(center_x, center_y).await;
             common::wait_ui_stable().await;
             return;
@@ -553,13 +549,11 @@ async fn click_submit_with_retry(device: &Device) -> bool {
                     .click(Some(Duration::from_secs(3)), None)
                     .await
                     .is_ok()
-            {
-                if wait_submit_transition(device, &baseline_title, Duration::from_secs(2))
+                && wait_submit_transition(device, &baseline_title, Duration::from_secs(2))
                     .await
                     .is_some()
-                {
-                    return true;
-                }
+            {
+                return true;
             }
         }
 

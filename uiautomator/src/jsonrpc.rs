@@ -132,7 +132,7 @@ impl JsonRpcClient {
             .timeout(Duration::from_secs(60))
             .no_proxy()
             .build()
-            .map_err(|e| Error::Http(e))?;
+            .map_err(Error::Http)?;
 
         let mut client = Self {
             device_serial,
@@ -202,7 +202,7 @@ impl JsonRpcClient {
             .timeout(Duration::from_secs(60))
             .no_proxy()
             .build()
-            .map_err(|e| Error::Http(e))?;
+            .map_err(Error::Http)?;
 
         let client = Self {
             device_serial,
@@ -303,7 +303,7 @@ impl JsonRpcClient {
             .timeout(Duration::from_secs(60))
             .no_proxy()
             .build()
-            .map_err(|e| Error::Http(e))?;
+            .map_err(Error::Http)?;
 
         Ok(Self {
             device_serial,
@@ -427,12 +427,10 @@ impl JsonRpcClient {
                     );
 
                     // 检查是否需要重试
-                    let should_retry = match &e {
-                        Error::HttpTimeout => true,
-                        Error::Http(_) => true,
-                        Error::UiAutomatorNotConnected => true,
-                        _ => false,
-                    };
+                    let should_retry = matches!(
+                        &e,
+                        Error::HttpTimeout | Error::Http(_) | Error::UiAutomatorNotConnected
+                    );
 
                     if !should_retry || attempt == max_retries {
                         return Err(e);
@@ -451,7 +449,7 @@ impl JsonRpcClient {
                     last_error = Some(e);
 
                     // 指数退避：base_delay * attempt
-                    let delay = base_delay * attempt as u32;
+                    let delay = base_delay * attempt;
                     debug!("等待 {:?} 后重试...", delay);
                     tokio::time::sleep(delay).await;
                 }
@@ -1016,8 +1014,10 @@ mod tests {
     /// 测试重试机制：达到最大重试次数后失败
     #[tokio::test]
     async fn test_retry_fails_after_max_attempts() {
-        let mut settings = Settings::default();
-        settings.max_retry = 3;
+        let settings = Settings {
+            max_retry: 3,
+            ..Settings::default()
+        };
         let settings = Arc::new(RwLock::new(settings));
         let attempt_count = Arc::new(AtomicUsize::new(0));
         let attempt_count_clone = Arc::clone(&attempt_count);
@@ -1053,9 +1053,11 @@ mod tests {
     /// 测试重试机制：使用指数退避
     #[tokio::test]
     async fn test_retry_uses_exponential_backoff() {
-        let mut settings = Settings::default();
-        settings.max_retry = 3;
-        settings.retry_base_delay = Duration::from_millis(100);
+        let settings = Settings {
+            max_retry: 3,
+            retry_base_delay: Duration::from_millis(100),
+            ..Settings::default()
+        };
         let settings = Arc::new(RwLock::new(settings));
 
         let adb_client = Arc::new(AdbClient::new().await.unwrap());

@@ -654,7 +654,7 @@ mod tests {
     #[test]
     fn test_error_code_uniqueness() {
         // 确保错误码在各自范围内是唯一的
-        let device_codes = vec![
+        let device_codes = [
             Error::DeviceNotFound.code(),
             Error::MultipleDevicesFound.code(),
             Error::DeviceOffline("".to_string()).code(),
@@ -667,7 +667,7 @@ mod tests {
             "设备错误码应该唯一"
         );
 
-        let element_codes = vec![
+        let element_codes = [
             Error::ElementNotFound {
                 selector: "".to_string(),
             }
