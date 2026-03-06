@@ -101,23 +101,17 @@ jobs:
       ANDROID_SDK_ROOT: ${{ vars.ANDROID_SDK_ROOT }}
       UIAUTOMATOR_RUST_HOME: ${{ vars.UIAUTOMATOR_RUST_HOME }}
       UIAUTOMATOR_CACHE_DIR: ${{ vars.UIAUTOMATOR_CACHE_DIR }}
+      UIAUTOMATOR_SOURCE_ROOT: ${{ vars.UIAUTOMATOR_SOURCE_ROOT }}
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix: ${{ fromJSON(needs.prepare-targets.outputs.matrix_json) }}
 
     steps:
-      - name: Prepare git transport
+      - name: Prepare local workspace
         shell: cmd
         run: |
-          git config --global http.version HTTP/1.1
-          git config --global http.postBuffer 524288000
-          git config --global core.compression 0
-          git config --global http.lowSpeedLimit 0
-          git config --global http.lowSpeedTime 999999
-
-      - name: Checkout
-        uses: actions/checkout@v4
+          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%UIAUTOMATOR_SOURCE_ROOT%\scripts\prepare-local-workspace.ps1" -SourceRepoRoot "%UIAUTOMATOR_SOURCE_ROOT%" -DestinationRepoRoot "%GITHUB_WORKSPACE%" -CommitSha "${{ github.sha }}"
 
       - name: Run validation gate (full)
         id: run_nightly
