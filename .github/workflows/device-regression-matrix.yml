@@ -97,6 +97,15 @@ jobs:
       matrix: ${{ fromJSON(needs.prepare-targets.outputs.matrix_json) }}
 
     steps:
+      - name: Prepare git transport
+        shell: cmd
+        run: |
+          git config --global http.version HTTP/1.1
+          git config --global http.postBuffer 524288000
+          git config --global core.compression 0
+          git config --global http.lowSpeedLimit 0
+          git config --global http.lowSpeedTime 999999
+
       - name: Checkout
         uses: actions/checkout@v4
 

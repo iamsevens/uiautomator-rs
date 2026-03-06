@@ -78,6 +78,14 @@ function Register-Task {
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
 }
 
+function Set-GitTransportDefaults {
+    & git config --global http.version HTTP/1.1
+    & git config --global http.postBuffer 524288000
+    & git config --global core.compression 0
+    & git config --global http.lowSpeedLimit 0
+    & git config --global http.lowSpeedTime 999999
+}
+
 Invoke-Gh -Arguments @("auth", "status") | Out-Null
 Expand-RunnerPackage
 
@@ -99,6 +107,7 @@ if ((-not (Test-Path $runnerMarker)) -or $Reconfigure) {
     ) | Out-Null
 }
 
+Set-GitTransportDefaults
 Register-Task
 
 if ($StartTask) {
