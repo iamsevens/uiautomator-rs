@@ -14,8 +14,8 @@ public class StressTestActivity extends AppCompatActivity {
     private TextView tvMemoryUsage;
     private TextView tvAnimationCount;
     private int clickCount = 0;
-    private List<Object> memoryList = new ArrayList<>();
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private final List<Object> memoryList = new ArrayList<>();
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +38,7 @@ public class StressTestActivity extends AppCompatActivity {
 
         // Memory stress test
         findViewById(R.id.btn_memory_stress).setOnClickListener(v -> {
+            memoryList.clear();
             // Allocate memory
             for (int i = 0; i < 1000; i++) {
                 memoryList.add(new byte[1024]); // 1KB each
@@ -51,6 +52,7 @@ public class StressTestActivity extends AppCompatActivity {
 
         // Animation stress test
         findViewById(R.id.btn_animation_stress).setOnClickListener(v -> {
+            handler.removeCallbacksAndMessages(null);
             // Start multiple animations
             for (int i = 0; i < 10; i++) {
                 final int index = i;

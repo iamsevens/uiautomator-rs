@@ -132,7 +132,10 @@ async fn test_concurrent_element_operations() {
     let device = common::connect_test_device().await.unwrap();
 
     // 启动设置应用
-    device.app_start(common::TEST_APP_PACKAGE, None).await.ok();
+    device
+        .app_start(common::TEST_APP_PACKAGE, None)
+        .await
+        .expect("failed to start test app");
     common::wait_ui_stable().await;
 
     // 使用 tokio::join! 并发查找元素
@@ -159,7 +162,9 @@ async fn test_concurrent_element_operations() {
 
     println!("✓ 并发元素操作成功");
 
-    common::cleanup_test_env(&device).await.ok();
+    common::cleanup_test_env(&device)
+        .await
+        .expect("failed to cleanup test environment");
 }
 
 #[tokio::test]
@@ -269,7 +274,10 @@ async fn test_concurrent_app_operations() {
     let device = common::connect_test_device().await.unwrap();
 
     // 任务 1: 启动应用
-    device.app_start(common::TEST_APP_PACKAGE, None).await.ok();
+    device
+        .app_start(common::TEST_APP_PACKAGE, None)
+        .await
+        .expect("failed to start test app");
     println!("任务 1: 应用已启动");
 
     // 等待启动完成
@@ -278,17 +286,17 @@ async fn test_concurrent_app_operations() {
     // 使用 tokio::join! 并发执行查询操作
     let (info_result, screenshot_result) = tokio::join!(device.app_current(), device.screenshot());
 
-    if let Ok(info) = info_result {
-        println!("任务 2: 当前应用 = {}", info.package);
-    }
+    let info = info_result.expect("failed to query current app");
+    println!("任务 2: 当前应用 = {}", info.package);
 
-    if screenshot_result.is_ok() {
-        println!("任务 3: 截图完成");
-    }
+    screenshot_result.expect("failed to capture screenshot");
+    println!("任务 3: 截图完成");
 
     println!("✓ 并发应用操作成功");
 
-    common::cleanup_test_env(&device).await.ok();
+    common::cleanup_test_env(&device)
+        .await
+        .expect("failed to cleanup test environment");
 }
 
 #[tokio::test]
@@ -301,20 +309,33 @@ async fn test_stress_concurrent_operations() {
     // 压力测试：大量并发操作
     let selector = Selector::new().class_name("android.widget.TextView");
 
+    let mut failures = Vec::new();
     for i in 0..20 {
         match i % 3 {
             0 => {
-                device.info().await.ok();
+                if let Err(error) = device.info().await {
+                    failures.push(format!("iteration {i} info failed: {error}"));
+                }
             }
             1 => {
-                device.window_size().await.ok();
+                if let Err(error) = device.window_size().await {
+                    failures.push(format!("iteration {i} window_size failed: {error}"));
+                }
             }
             _ => {
                 let element = device.find(selector.clone());
-                element.exists(Some(Duration::from_secs(2))).await.ok();
+                if let Err(error) = element.exists(Some(Duration::from_secs(2))).await {
+                    failures.push(format!("iteration {i} exists failed: {error}"));
+                }
             }
         }
     }
+
+    assert!(
+        failures.is_empty(),
+        "stress concurrent operations had failures: {}",
+        failures.join(" | ")
+    );
 
     // 验证设备仍然可用
     let info = device.info().await;

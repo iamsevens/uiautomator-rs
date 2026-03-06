@@ -39,10 +39,10 @@ public class BasicControlsActivity extends AppCompatActivity {
         // Reset button
         findViewById(R.id.btn_reset).setOnClickListener(v -> {
             clickCount = 0;
-            tvResult.setText("Result: Reset");
             cbOption.setChecked(false);
             rgOptions.clearCheck();
             swToggle.setChecked(false);
+            tvResult.setText("Result: Reset");
         });
 
         // CheckBox
