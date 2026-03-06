@@ -11,10 +11,11 @@ It is a normalized view of internal specs, not a lightweight summary.
 
 | Public Domain | Internal Source | Status |
 |---|---|---|
+| Public docs and examples coverage | `docs-examples-quality/tasks.md` | Done |
 | Core library capabilities | `uiautomator/requirements.md` (1-12) | Done |
 | CLI environment management | `uiautomator-cli/requirements.md` (1-7) | Done |
 | Selector compatibility fixes | `bugfix/requirements.md` (1-5) | Done |
-| Phase2 enhancements | `uiautomator-phase2/requirements.md` (1-7) | Partially done |
+| Phase2 enhancements | `uiautomator-phase2/requirements.md` (1-7) | Done |
 
 ## 3. Glossary
 
@@ -188,10 +189,12 @@ Acceptance:
 
 - Structured full regression outputs: `summary.json`, `summary.junit.xml`
 - API coverage outputs: `api-coverage.json`, `api-coverage.md`
+- Docs/examples coverage outputs: `docs-coverage-summary.json`, `docs-coverage-summary.md`
 
 ### NFR-04 Maintainability
 
 - Public API documentation coverage
+- Public API example coverage at release quality
 - Test coverage on critical paths
 - Scripted and auditable release checks
 
@@ -202,6 +205,7 @@ A release-ready state requires all of the following:
 1. All release-blocking requirements are satisfied.
 2. Scripted `clean -> rebuild -> full regression` passes.
 3. At least emulator + real-device evidence is available.
-4. Package checks and publish order are valid (`uiautomator` then `uiautomator-cli`).
+4. Docs/examples coverage evidence is generated and reviewed.
+5. Package checks and publish order are valid (`uiautomator` then `uiautomator-cli`).
 
-Phase2 and release engineering enhancements continue after release and are tracked in `TASKS.md`.
+Current tracked Phase2 enhancements are complete; future enhancements can be added as new task streams in `TASKS.md`.

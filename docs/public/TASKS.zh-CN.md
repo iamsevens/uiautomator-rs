@@ -14,6 +14,7 @@
 
 任务来源：
 
+- `.kiro/specs/docs-examples-quality/tasks.md`
 - `.kiro/specs/uiautomator/tasks.md`
 - `.kiro/specs/uiautomator-cli/tasks.md`
 - `.kiro/specs/uiautomator-phase2/tasks.md`
@@ -30,10 +31,11 @@
 
 | 任务域 | 状态概览 | 发布影响 |
 |---|---|---|
+| docs/examples 文档覆盖工程 | 已完成（覆盖脚本 + CI 守门 + 100% 文档/示例） | 已满足 |
 | uiautomator Phase1 + ATX | 已完成（1~19, 18A/18B） | 已满足 |
 | uiautomator-cli 基础 + 工程增强 | 1~25 已完成 | 已满足 |
 | bugfix Selector 修复 | 1~3 全部完成 | 已满足 |
-| phase2 核心增强 | 1/2/3/4 + 5.1 已完成，其余未完 | 默认不阻塞当前版本 |
+| phase2 核心增强 | 已完成（1/2/3/4 + 5.1 + 5.2 + 5.3 + 6.1 + 6.2 + 6.3 + 7.1~7.4） | 已满足 |
 
 ## 4. 已完成任务台账（可作为发布证据）
 
@@ -86,6 +88,24 @@
 - 选择器序列化语义与 Python 对齐
 - 相关测试任务全部勾选完成
 
+### 4.4 文档与示例覆盖工程
+
+已完成（来自 `docs-examples-quality/tasks.md`）：
+
+- 1~5：覆盖率脚本、解析器、缺口补齐、CI 守门、发布检查集成
+
+证据要点：
+
+- 覆盖率入口脚本：`scripts/docs-coverage-report.ps1`
+- 最新摘要工件：
+  - `internal/testlogs/docs/latest-summary.json`
+  - `internal/testlogs/docs/latest-summary.md`
+- 已验证总覆盖：
+  - 文档 `331/331`（`100%`）
+  - 示例 `187/187`（`100%`）
+- CI 守门工作流：
+  - `.github/workflows/docs-coverage.yml`
+
 ## 5. 未完成任务台账
 
 ### 5.1 Phase2（核心增强，默认不阻塞当前发布）
@@ -97,18 +117,23 @@
 - `1.2` 已完成：现有代码已迁移到新错误类型
 - `1.3` 已完成：文档/示例已同步
 
-2. `Task 5` API 一致性改进（Open）
+2. `Task 5` API 一致性改进（已完成）
 - `5.1` 已完成：统一超时参数
-- `5.2` Open：统一坐标参数（可选）
-- `5.3` Open：文档审查
+- `5.2` 已完成：公开 `Coord` 模型与 `*_coord` 坐标辅助方法
+- `5.3` 已完成：公开 API 文档审查与 API 指南补齐
 
-3. `Task 6` Mock 测试覆盖（Open）
-- `6.1` Open：基础设施
-- `6.2` Open：核心功能 mock
-- `6.3` Open：错误场景 mock
+3. `Task 6` Mock 测试覆盖（已完成）
+- `6.1` 已完成：mockito + `mock_uiobject_test` + CI 守门
+- `6.2` 已完成：设备信息、元素信息、exists、点击、输入、元素未找到 mock
+- `6.3` 已完成：network/timeout/invalid response/server error/retry mock
 
-4. `Task 7` 性能优化-设备信息缓存（Open，可选）
-- `7.1` ~ `7.4` 均 Open
+4. `Task 7` 性能优化-设备信息缓存（已完成，可选）
+- `7.1` 已完成：缓存结构与共享状态
+- `7.2` 已完成：缓存命中/过期逻辑与 mock 回归
+- `7.3` 已完成：`set_cache_ttl` / `clear_cache` / `disable_cache`
+- `7.4` 已完成：`criterion` 基准测试（`benches/device_info_cache.rs`）
+
+当前公开任务台账中已无明确 Open 项。
 
 ## 6. 发布阻塞判定
 
@@ -121,28 +146,24 @@
 1. 核心能力（FR-UA/FR-CLI/FR-BUG）均已落地。
 2. 多设备全量回归（含 ignored）已可执行并有日志。
 3. API 覆盖与结构化摘要可生成。
-4. 包内容与发布顺序已有流程约束。
+4. docs/examples 覆盖与结构化摘要可生成。
+5. 包内容与发布顺序已有流程约束。
 
-结论：当前可发布；剩余项属于“可持续发布能力增强”。
+结论：当前可发布；当前公开台账内没有剩余未完成项。
 
 ## 7. 下一步执行顺序（建议）
 
 ### P0（发布后第一批）
 
-1. 完成 Phase2 Task 5.3：API 文档一致性审查
-
-理由：当前代码已完成错误类型与超时参数收敛，下一步优先补齐对外文档一致性。
+当前无 P0 待办。
 
 ### P1（发布后第二批）
 
-1. 推进 Phase2 Task 6：Mock 测试体系化
-
-理由：提升回归可信度并补齐错误/重试场景的可重复验证能力。
+当前无 P1 待办。
 
 ### P2（稳定性增强）
 
-1. Phase2 Task 5.2：坐标参数统一（可选）
-2. Phase2 Task 7：缓存优化（可选）
+当前无 P2 待办。
 
 ## 8. 任务到文档映射
 

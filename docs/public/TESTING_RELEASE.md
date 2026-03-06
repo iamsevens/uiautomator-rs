@@ -21,6 +21,7 @@ Sources:
 - `scripts/device-full-test.ps1`
 - `scripts/run-validation-gate.ps1`
 - `scripts/api-coverage-report.ps1`
+- `scripts/docs-coverage-report.ps1`
 - `scripts/release-check.ps1`, `scripts/release-check.sh`
 - `scripts/trigger-gh-device-regression.ps1`
 
@@ -96,11 +97,12 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionP
 - Gate orchestrator: `internal/testlogs/validation-gate/<run-id>/`
 - Full regression: `internal/testlogs/full-device/<run-id>/`
 - API coverage: `internal/testlogs/api-coverage/<run-id>/`
+- Docs coverage: `internal/testlogs/docs/<run-id>/`
 
 ### Required Artifacts
 
 - Human logs: `*.log`, `*.err.log`
-- Machine-readable: `summary.json`, `summary.junit.xml`, `api-coverage.json`, `api-coverage.md`
+- Machine-readable: `summary.json`, `summary.junit.xml`, `api-coverage.json`, `api-coverage.md`, `docs-coverage-summary.json`, `docs-coverage-summary.md`
 
 ### Encoding Rule
 
@@ -141,19 +143,32 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionP
 |---|---|---|---|---|---|---|---|---|
 | `<time>` | `<run-id>` | `<serial>` | `<step>` | `E-*` | `<symptom>` | `<cause>` | `<action>` | pass/fail |
 
-## 8. API Coverage Accounting
+## 8. Coverage Accounting
 
-### Command
+### API Coverage Command
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
 ```
 
-### Expectations
+### API Coverage Expectations
 
 - Public API to test-case mapping generated
 - Uncovered APIs flagged explicitly
 - Coverage artifacts included in release evidence
+
+### Docs And Examples Coverage Command
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 100 -MinExamplesPercent 100
+```
+
+### Docs And Examples Expectations
+
+- Public API docs coverage remains at `100%`
+- Public API examples coverage remains at `100%`
+- Latest docs coverage summaries are generated under `internal/testlogs/docs/`
+- CI blocks regressions below the configured threshold
 
 ## 9. Release Gates
 
@@ -163,13 +178,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.
 2. Clean rebuild + full regression passes on real device + emulator.
 3. `summary.json` and `summary.junit.xml` are present and valid.
 4. API coverage artifacts are generated and reviewed.
-5. `cargo publish --dry-run` passes for both crates.
+5. Docs/examples coverage artifacts are generated and reviewed.
+6. `cargo publish --dry-run` passes for both crates.
 
 ### Soft Gates
 
 1. Keep Task 23 matrix expansion maintained (baseline completed).
 2. Keep Task 24 post-install smoke path maintained (baseline completed).
 3. Keep Task 25 nightly guardrail healthy (baseline completed).
+4. Re-run optional perf benchmark when cache-related code changes: `cargo bench --bench device_info_cache -- --sample-size 10`.
 
 ## 10. Release Execution Order
 
@@ -179,6 +196,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-check.ps1
 C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 100 -MinExamplesPercent 100
+# optional perf evidence when cache code changes
+cargo bench --bench device_info_cache -- --sample-size 10
 cargo publish --dry-run
 ```
 
@@ -225,11 +245,14 @@ bash scripts/release-check.sh
 - summary.junit.xml: <path>
 - api-coverage.json: <path>
 - api-coverage.md: <path>
+- docs-coverage-summary.json: <path>
+- docs-coverage-summary.md: <path>
 
 ### Gate Check
 - release-check: pass/fail
 - full regression: pass/fail
 - coverage review: pass/fail
+- docs/examples coverage review: pass/fail
 - cargo publish --dry-run (uiautomator): pass/fail
 - cargo publish --dry-run (uiautomator-cli): pass/fail
 

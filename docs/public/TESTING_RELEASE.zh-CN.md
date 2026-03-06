@@ -17,6 +17,7 @@
 - `.kiro/specs/uiautomator*/tasks.md`
 - `.kiro/specs/bugfix/tasks.md`
 - 仓库脚本：`scripts/run-validation-gate.ps1`、`scripts/device-full-test.ps1`、`scripts/api-coverage-report.ps1`
+- 文档覆盖脚本：`scripts/docs-coverage-report.ps1`
 - 发布检查脚本：`scripts/release-check.ps1`、`scripts/release-check.sh`
 
 适用对象：
@@ -86,11 +87,12 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionP
 - Gate 编排层：`internal/testlogs/validation-gate/<run-id>/`
 - 全量回归：`internal/testlogs/full-device/<run-id>/`
 - API 对账：`internal/testlogs/api-coverage/<run-id>/`
+- 文档覆盖：`internal/testlogs/docs/<run-id>/`
 
 ### 6.2 必须产物
 
 - 人类可读：`*.log`、`*.err.log`
-- 机器可读：`summary.json`、`summary.junit.xml`、`api-coverage.json`、`api-coverage.md`
+- 机器可读：`summary.json`、`summary.junit.xml`、`api-coverage.json`、`api-coverage.md`、`docs-coverage-summary.json`、`docs-coverage-summary.md`
 
 ### 6.3 统一编码
 
@@ -132,21 +134,34 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionP
 |---|---|---|---|---|---|---|---|---|
 | `<time>` | `<run-id>` | `<serial>` | `<step>` | `E-*` | `<symptom>` | `<root>` | `<fix>` | pass/fail |
 
-## 8. API 覆盖对账
+## 8. 覆盖率对账
 
-### 8.1 执行命令
+### 8.1 API 覆盖执行命令
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
 ```
 
-### 8.2 目标
+### 8.2 API 覆盖目标
 
 - 建立“公开 API -> 测试用例”映射。
 - 自动标记未覆盖 API。
 - 输出发布证据，避免“全量通过但覆盖不足”。
 
-### 8.3 发布门槛建议
+### 8.3 文档与示例覆盖执行命令
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 100 -MinExamplesPercent 100
+```
+
+### 8.4 文档与示例覆盖目标
+
+- 公开 API 文档覆盖率保持 `100%`
+- 公开 API 示例覆盖率保持 `100%`
+- 最新覆盖摘要持续产出到 `internal/testlogs/docs/`
+- CI 对覆盖回退执行阻断
+
+### 8.5 发布门槛建议
 
 - 不允许核心公开 API 出现“未覆盖且无豁免说明”。
 - 对暂缓覆盖项必须在发布说明写明原因与计划版本。
@@ -159,13 +174,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.
 2. 至少一台真机 + 一台模拟器完成“清空环境 -> 重建 -> 全量”通过。
 3. `summary.json` 与 `summary.junit.xml` 完整可追溯。
 4. API 覆盖对账产物已生成并审阅。
-5. `cargo publish --dry-run` 在两个 crate 内均通过。
+5. docs/examples 覆盖产物已生成并审阅。
+6. `cargo publish --dry-run` 在两个 crate 内均通过。
 
 ### 9.2 Soft Gates（强烈建议）
 
 1. 持续维护多版本 Android 回归矩阵（Task 23，基线已完成）。
 2. 持续维护 `cargo install` 烟测链路（Task 24，基线已完成）。
 3. 持续维护 Nightly 回归守门（Task 25，基线已完成）。
+4. 若缓存相关代码有改动，补跑可选性能基准：`cargo bench --bench device_info_cache -- --sample-size 10`。
 
 ## 10. 发布执行顺序
 
@@ -181,7 +198,13 @@ C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionP
 # 3) API 覆盖对账
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
 
-# 4) dry-run 发布检查（分别在两个 crate 目录）
+# 4) docs/examples 覆盖检查
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 100 -MinExamplesPercent 100
+
+# 5) 可选性能基准（当缓存代码有变更时）
+cargo bench --bench device_info_cache -- --sample-size 10
+
+# 6) dry-run 发布检查（分别在两个 crate 目录）
 cargo publish --dry-run
 ```
 
@@ -220,11 +243,14 @@ bash scripts/release-check.sh
 - summary.junit.xml: <path>
 - api-coverage.json: <path>
 - api-coverage.md: <path>
+- docs-coverage-summary.json: <path>
+- docs-coverage-summary.md: <path>
 
 ### Gate Check
 - release-check: pass/fail
 - full regression: pass/fail
 - coverage review: pass/fail
+- docs/examples coverage review: pass/fail
 - cargo publish --dry-run (uiautomator): pass/fail
 - cargo publish --dry-run (uiautomator-cli): pass/fail
 

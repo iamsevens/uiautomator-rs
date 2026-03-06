@@ -9,6 +9,7 @@ It tracks what is complete, what remains open, and what actually blocks release.
 
 ## 2. Sources
 
+- `.kiro/specs/docs-examples-quality/tasks.md`
 - `.kiro/specs/uiautomator/tasks.md`
 - `.kiro/specs/uiautomator-cli/tasks.md`
 - `.kiro/specs/uiautomator-phase2/tasks.md`
@@ -25,10 +26,11 @@ It tracks what is complete, what remains open, and what actually blocks release.
 
 | Domain | Current State | Release Impact |
 |---|---|---|
+| docs/examples quality | Done (coverage tooling + CI guard + 100% docs/examples) | Satisfied |
 | `uiautomator` Phase1 + ATX | Done (1-19, 18A/18B) | Satisfied |
 | `uiautomator-cli` base + engineering | 1-25 done | Satisfied |
 | `bugfix` selector fixes | Done (1-3) | Satisfied |
-| `phase2` enhancements | partial (1/2/3/4 + 5.1 done, others open) | Non-blocking by default |
+| `phase2` enhancements | Done (1/2/3/4 + 5.1 + 5.2 + 5.3 + 6.1 + 6.2 + 6.3 + 7.1-7.4 complete) | Satisfied |
 
 ## 5. Done Ledger (Evidence Eligible)
 
@@ -69,6 +71,24 @@ Done groups:
 - 2: extended selector fields (P1)
 - 3: child/sibling hierarchy selector support (P2)
 
+### 5.4 Docs and Examples Quality
+
+Done groups:
+
+- 1-5: coverage tooling, parser, missing docs/examples closure, CI guard, release checklist integration
+
+Evidence highlights:
+
+- Coverage entrypoint: `scripts/docs-coverage-report.ps1`
+- Latest summary artifacts:
+  - `internal/testlogs/docs/latest-summary.json`
+  - `internal/testlogs/docs/latest-summary.md`
+- Verified aggregate coverage:
+  - docs `331/331` (`100%`)
+  - examples `187/187` (`100%`)
+- CI guard workflow:
+  - `.github/workflows/docs-coverage.yml`
+
 ## 6. Open Ledger
 
 ### 6.1 Phase2 Enhancements
@@ -80,18 +100,23 @@ From `uiautomator-phase2/tasks.md`:
 - 1.2 Done
 - 1.3 Done
 
-2. Task 5 (API consistency)
+2. Task 5 (API consistency, done)
 - 5.1 Done
-- 5.2 Open (optional)
-- 5.3 Open
+- 5.2 Done (public `Coord` model + `*_coord` helpers)
+- 5.3 Done
 
-3. Task 6 (mock coverage expansion)
-- 6.1 Open
-- 6.2 Open
-- 6.3 Open
+3. Task 6 (mock coverage expansion, done)
+- 6.1 Done (mockito + `mock_uiobject_test` + CI guard)
+- 6.2 Done (device info, element info, click, set_text, exists, element-not-found)
+- 6.3 Done (network, timeout, invalid response, server error, retry)
 
 4. Task 7 (device info cache/performance, optional)
-- 7.1-7.4 Open
+- 7.1 Done (cache entry + shared cache state)
+- 7.2 Done (cache hit/expiry behavior + mock regression)
+- 7.3 Done (`set_cache_ttl`, `clear_cache`, `disable_cache`)
+- 7.4 Done (`criterion` benchmark: `benches/device_info_cache.rs`)
+
+No explicit open item remains in the current public task ledger.
 
 ## 7. Release Blocking Decision
 
@@ -104,24 +129,25 @@ No explicit open `Release-Blocking` item remains.
 1. Core FR requirements are implemented.
 2. Full regression script path exists and is runnable.
 3. Structured test artifacts are available.
-4. Publish order and package checks are defined.
+4. API coverage artifacts are available.
+5. Docs/examples coverage artifacts are available.
+6. Publish order and package checks are defined.
 
-Conclusion: release baseline is met; open items are sustainability hardening.
+Conclusion: release baseline is met; no tracked open item remains in the current ledger.
 
 ## 8. Recommended Next Order
 
 ### P0
 
-1. Phase2 Task 5.3 (API docs consistency review)
+No P0 item remains.
 
 ### P1
 
-1. Phase2 Task 6 (mock systematization)
+No P1 item remains.
 
 ### P2
 
-1. Phase2 Task 5.2 (optional coordinate model unification)
-2. Phase2 Task 7 (optional cache/perf)
+No P2 item remains.
 
 ## 9. Cross-Doc Consistency Rule
 

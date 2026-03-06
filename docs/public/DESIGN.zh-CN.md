@@ -21,6 +21,7 @@
 - CLI `uiautomator-cli` 的设备环境搭建与服务管理
 - Selector mask 与扩展字段兼容性修复
 - 测试与可观测性工程（结构化日志、覆盖对账）
+- 文档/示例覆盖自动化与守门
 
 ### 2.2 Out of Scope
 
@@ -40,6 +41,7 @@
 | FR-CLI-03 离线资源 | 资源内嵌与 hash 校验 | `resources.rs`, `build.rs` | 构建检查 |
 | FR-BUG-01 Selector兼容 | mask/字段/层级选择器 | `selector.rs` | bugfix 测试集 |
 | FR-BUG-02 ATX兼容 | shell_v2 + /version文本兼容 + 架构回退 | `atx_agent.rs`, `device.rs` | 多设备回归 |
+| NFR-04 文档可维护性 | docs/examples 覆盖守门 | `scripts/docs-coverage-report.ps1`, `.github/workflows/docs-coverage.yml` | 覆盖摘要 + CI |
 
 ## 4. 总体架构
 
@@ -255,6 +257,12 @@ Selector 后置校验边界：
 - 输出公开 API 与测试映射清单
 - 标记未覆盖项，作为发布前证据
 
+### 10.4 文档与示例覆盖对账
+
+- 使用 `scripts/docs-coverage-report.ps1`
+- 最新摘要固定输出到 `internal/testlogs/docs/`
+- 通过 CI 阈值守门维持 `100%` 文档与 `100%` 示例覆盖
+
 ## 11. 构建与发布设计
 
 ### 11.1 资源与构建
@@ -269,14 +277,14 @@ Selector 后置校验边界：
 
 原因：CLI 在 crates 关系上依赖库版本。
 
-## 12. Phase2 设计计划（不阻塞当前发布）
+## 12. Phase2 设计结果
 
 - 错误类型全链路收敛
 - API 参数一致性收敛
 - Mock 测试体系化
-- 缓存与性能优化（可选）
+- 缓存与性能优化（可选，已通过显式缓存与基准测试落地）
 
-对应任务详见 `docs/public/TASKS.md`。
+对应任务已在 `docs/public/TASKS.md` 中全部闭环。
 
 ## 13. 风险与缓解
 

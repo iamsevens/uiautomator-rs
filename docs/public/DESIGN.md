@@ -14,6 +14,7 @@ Public architecture and design baseline for `uiautomator-rs`, aligned with requi
 - CLI architecture (`uiautomator-cli`)
 - Selector compatibility and ATX reliability fixes
 - Test/release observability design
+- Public docs/examples coverage automation
 
 ### Out of Scope
 
@@ -33,6 +34,7 @@ Public architecture and design baseline for `uiautomator-rs`, aligned with requi
 | FR-CLI-03 | embedded resources and build checks | `resources.rs`, `build.rs` | package/release checks |
 | FR-BUG-01 | selector compatibility layer | `selector.rs` | bugfix regression |
 | FR-BUG-02 | ATX compatibility layer | `atx_agent.rs`, `device.rs` | multi-device regression |
+| NFR-04 | docs/examples coverage guardrail | `scripts/docs-coverage-report.ps1`, `.github/workflows/docs-coverage.yml` | coverage summary + CI |
 
 ## 4. System Architecture
 
@@ -197,20 +199,26 @@ API coverage accounting:
 
 - `scripts/api-coverage-report.ps1` maps public API to tests.
 
+Docs/examples coverage accounting:
+
+- `scripts/docs-coverage-report.ps1` records docs/examples coverage summaries.
+- Latest results are stored under `internal/testlogs/docs/`.
+- CI enforces `100%` docs and `100%` examples thresholds.
+
 ## 12. Build and Release Design
 
 - `build.rs` injects asset checksum metadata during compile.
 - Missing required assets fail early.
 - crates.io release order: `uiautomator` then `uiautomator-cli`.
 
-## 13. Phase2 Design Scope
+## 13. Phase2 Design Outcome
 
 - Error type consolidation
 - API argument consistency
 - Systematic mock coverage
-- Optional cache/perf improvements
+- Optional cache/perf improvements, implemented as opt-in device-info caching plus a criterion benchmark
 
-These are tracked as enhancement milestones and do not automatically block current release.
+These were tracked as enhancement milestones and are now part of the completed public baseline.
 
 ## 14. Risks and Mitigations
 

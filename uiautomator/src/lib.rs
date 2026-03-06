@@ -191,7 +191,7 @@ pub use atx_agent::AtxAgentClient;
 pub use jsonrpc::JsonRpcClient;
 
 // 数据模型
-pub use models::{AppInfo, DeviceInfo, ElementInfo, Rect};
+pub use models::{AppInfo, Coord, DeviceInfo, ElementInfo, Rect};
 
 // ============================================================================
 // 工具函数

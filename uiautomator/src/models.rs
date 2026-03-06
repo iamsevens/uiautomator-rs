@@ -2,7 +2,100 @@
 //!
 //! 本模块包含与 Android 设备和 UI 元素相关的数据结构。
 
+use crate::{Error, Result};
 use serde::{Deserialize, Deserializer, Serialize};
+
+/// 坐标值。
+///
+/// 用于同时表达像素坐标和百分比坐标，方便在公开 API 中统一传参模型。
+///
+/// # Examples
+///
+/// ```
+/// use uiautomator::Coord;
+///
+/// let pixel = Coord::pixel(200);
+/// let percent = Coord::percent(0.5);
+/// assert_eq!(pixel.to_pixel(1080).unwrap(), 200);
+/// assert_eq!(percent.to_pixel(1080).unwrap(), 540);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Coord {
+    /// 绝对像素坐标
+    Pixel(u32),
+    /// 相对百分比坐标，取值范围 `0.0..=1.0`
+    Percent(f32),
+}
+
+impl Coord {
+    /// 创建像素坐标。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Coord;
+    ///
+    /// let coord = Coord::pixel(320);
+    /// assert_eq!(coord.to_pixel(1080).unwrap(), 320);
+    /// ```
+    pub fn pixel(value: u32) -> Self {
+        Self::Pixel(value)
+    }
+
+    /// 创建百分比坐标。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Coord;
+    ///
+    /// let coord = Coord::percent(0.25);
+    /// assert_eq!(coord.to_pixel(800).unwrap(), 200);
+    /// ```
+    pub fn percent(value: f32) -> Self {
+        Self::Percent(value)
+    }
+
+    /// 将当前坐标转换为像素坐标。
+    ///
+    /// # 参数
+    ///
+    /// * `total` - 坐标所在轴的总像素长度
+    ///
+    /// # Errors
+    ///
+    /// 当百分比坐标不是有限值，或者超出 `0.0..=1.0` 范围时返回 [`Error::InvalidArgument`]。
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uiautomator::Coord;
+    ///
+    /// assert_eq!(Coord::pixel(100).to_pixel(1080).unwrap(), 100);
+    /// assert_eq!(Coord::percent(0.5).to_pixel(1080).unwrap(), 540);
+    /// ```
+    pub fn to_pixel(self, total: u32) -> Result<u32> {
+        match self {
+            Self::Pixel(value) => Ok(value),
+            Self::Percent(value) => {
+                if !value.is_finite() {
+                    return Err(Error::InvalidArgument(
+                        "percentage coordinate must be finite".to_string(),
+                    ));
+                }
+
+                if !(0.0..=1.0).contains(&value) {
+                    return Err(Error::InvalidArgument(format!(
+                        "percentage coordinate must be within 0.0..=1.0, got {}",
+                        value
+                    )));
+                }
+
+                Ok((value * total as f32) as u32)
+            }
+        }
+    }
+}
 
 /// 设备信息
 ///
@@ -277,6 +370,28 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_coord_pixel_to_pixel() {
+        assert_eq!(Coord::pixel(320).to_pixel(1080).unwrap(), 320);
+    }
+
+    #[test]
+    fn test_coord_percent_to_pixel() {
+        assert_eq!(Coord::percent(0.5).to_pixel(1080).unwrap(), 540);
+    }
+
+    #[test]
+    fn test_coord_percent_out_of_range() {
+        let err = Coord::percent(1.5).to_pixel(1080).unwrap_err();
+        assert!(matches!(err, Error::InvalidArgument(_)));
+    }
+
+    #[test]
+    fn test_coord_percent_nan() {
+        let err = Coord::percent(f32::NAN).to_pixel(1080).unwrap_err();
+        assert!(matches!(err, Error::InvalidArgument(_)));
+    }
 
     #[test]
     fn test_rect_width() {

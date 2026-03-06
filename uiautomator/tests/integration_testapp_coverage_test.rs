@@ -610,7 +610,8 @@ async fn test_gesture_apis_with_real_ui_feedback() {
         device
             .wait_for(
                 || {
-                    let area = device.find(Selector::new().resource_id(app_id("tv_long_click_area")));
+                    let area =
+                        device.find(Selector::new().resource_id(app_id("tv_long_click_area")));
                     async move {
                         Ok(area
                             .get_text()
@@ -659,7 +660,10 @@ async fn test_gesture_apis_with_real_ui_feedback() {
             },
         )
         .await;
-        device.long_click(long_x, long_y, Some(duration)).await.unwrap();
+        device
+            .long_click(long_x, long_y, Some(duration))
+            .await
+            .unwrap();
         long_press_updated = check_long_press_updated().await;
         if long_press_updated {
             break;

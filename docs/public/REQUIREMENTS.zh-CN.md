@@ -14,10 +14,11 @@
 
 | 公开需求域 | 内部来源 | 当前状态 |
 |---|---|---|
+| 公开文档与示例覆盖 | `docs-examples-quality/tasks.md` | 已完成 |
 | 核心库基础能力 | `uiautomator/requirements.md` 需求 1~12 | 已完成 |
 | CLI 设备环境管理 | `uiautomator-cli/requirements.md` 需求 1~7 | 已完成 |
 | Selector 关键修复 | `bugfix/requirements.md` 需求 1~5 | 已完成 |
-| Phase2 能力增强 | `uiautomator-phase2/requirements.md` 需求 1~7 | 部分完成 |
+| Phase2 能力增强 | `uiautomator-phase2/requirements.md` 需求 1~7 | 已完成 |
 
 ## 3. 术语
 
@@ -200,10 +201,12 @@
 
 - 全量回归输出 `summary.json` 与 `summary.junit.xml`。
 - API 对账输出 `api-coverage.json` 与 `api-coverage.md`。
+- 文档/示例覆盖输出 `docs-coverage-summary.json` 与 `docs-coverage-summary.md`。
 
 ### NFR-04 可维护性
 
 - 公共 API 需文档化。
+- 公共 API 需保持发布级示例覆盖（可运行或 `no_run`）。
 - 核心路径需具备测试覆盖与发布前脚本化检查。
 
 ## 7. 发布验收门槛
@@ -213,7 +216,8 @@
 1. 核心库与 CLI 的发布阻塞需求全部达成。
 2. “清空环境 -> 重建 -> 全量”脚本化回归通过。
 3. 至少覆盖真机 + 模拟器组合验证。
-4. 发布包检查通过，发布顺序为 `uiautomator` 后 `uiautomator-cli`。
+4. docs/examples 覆盖证据已生成并审阅。
+5. 发布包检查通过，发布顺序为 `uiautomator` 后 `uiautomator-cli`。
 
-Phase2 与发布工程增强项持续推进，但不作为当前版本发布阻塞项。
+当前已纳管的 Phase2 增强项已完成；后续若新增增强需求，应作为新的任务流继续进入 `TASKS.md`。
 

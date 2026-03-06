@@ -6,14 +6,14 @@ use crate::{
     adb::AdbClient,
     error::{Error, Result},
     jsonrpc::JsonRpcClient,
-    models::DeviceInfo,
+    models::{Coord, DeviceInfo},
     selector::Selector,
     settings::Settings,
     uiobject::UiObject,
 };
 use log::{debug, info, warn};
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// 服务器模式
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,8 +64,20 @@ pub struct Device {
     /// 配置设置
     settings: Arc<RwLock<Settings>>,
 
+    /// 设备信息缓存（默认关闭，仅在显式设置 TTL 后启用）
+    info_cache: Arc<RwLock<Option<CacheEntry<DeviceInfo>>>>,
+
+    /// 设备信息缓存 TTL
+    cache_ttl: Arc<RwLock<Option<Duration>>>,
+
     /// 服务器模式
     server_mode: ServerMode,
+}
+
+#[derive(Debug, Clone)]
+struct CacheEntry<T> {
+    value: T,
+    cached_at: Instant,
 }
 
 impl Device {
@@ -292,6 +304,8 @@ impl Device {
     pub fn connect_with_rpc_url(serial: Option<&str>, rpc_url: &str) -> Result<Self> {
         let serial = serial.unwrap_or("mock-device").to_string();
         let settings = Arc::new(RwLock::new(Settings::default()));
+        let info_cache = Arc::new(RwLock::new(None));
+        let cache_ttl = Arc::new(RwLock::new(None));
         let adb_client = Arc::new(AdbClient::unchecked());
         let jsonrpc_client = Arc::new(JsonRpcClient::new_direct_with_rpc_url(
             serial.clone(),
@@ -305,6 +319,8 @@ impl Device {
             adb_client,
             jsonrpc_client,
             settings,
+            info_cache,
+            cache_ttl,
             server_mode: ServerMode::Direct,
         })
     }
@@ -385,6 +401,8 @@ impl Device {
 
         // 创建配置
         let settings = Arc::new(RwLock::new(Settings::default()));
+        let info_cache = Arc::new(RwLock::new(None));
+        let cache_ttl = Arc::new(RwLock::new(None));
 
         // 创建 ATX-Agent 客户端
         let atx_agent_client = Arc::new(
@@ -463,6 +481,8 @@ impl Device {
             adb_client,
             jsonrpc_client,
             settings,
+            info_cache,
+            cache_ttl,
             server_mode: ServerMode::AtxAgent,
         })
     }
@@ -473,6 +493,8 @@ impl Device {
 
         // 创建配置
         let settings = Arc::new(RwLock::new(Settings::default()));
+        let info_cache = Arc::new(RwLock::new(None));
+        let cache_ttl = Arc::new(RwLock::new(None));
 
         // 创建 JSON-RPC 客户端（Direct 模式）
         let jsonrpc_client = Arc::new(
@@ -491,6 +513,8 @@ impl Device {
             adb_client,
             jsonrpc_client,
             settings,
+            info_cache,
+            cache_ttl,
             server_mode: ServerMode::Direct,
         })
     }
@@ -500,6 +524,9 @@ impl Device {
     /// # 返回
     ///
     /// 返回设备的详细信息，包括屏幕尺寸、旋转角度等
+    ///
+    /// 如果已通过 [`Device::set_cache_ttl`] 显式启用缓存，且缓存尚未过期，
+    /// 则直接返回缓存值；默认情况下每次都会实时调用设备端 `deviceInfo`。
     ///
     /// # 示例
     ///
@@ -517,13 +544,98 @@ impl Device {
     pub async fn info(&self) -> Result<DeviceInfo> {
         debug!("获取设备信息");
 
+        if let Some(ttl) = self.cache_ttl() {
+            if let Some(info) = self.get_cached_info(ttl) {
+                return Ok(info);
+            }
+        }
+
         // 调用 JSON-RPC 的 deviceInfo 方法
         let info: DeviceInfo = self
             .jsonrpc_client
             .call("deviceInfo", serde_json::json!({}))
             .await?;
 
+        if self.cache_ttl().is_some() {
+            self.store_cached_info(info.clone());
+        }
+
         Ok(info)
+    }
+
+    /// 启用设备信息缓存，并设置缓存 TTL。
+    ///
+    /// 默认情况下，`Device::info()` 每次都会实时向设备端发起 RPC。
+    /// 调用本方法后，在 TTL 未过期时，`Device::info()` 会优先返回缓存值。
+    ///
+    /// # 参数
+    ///
+    /// * `ttl` - 缓存有效期
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     device.set_cache_ttl(Duration::from_secs(2));
+    ///     let info = device.info().await?;
+    ///     println!("cached width: {}", info.display_width);
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn set_cache_ttl(&self, ttl: Duration) {
+        self.set_cache_ttl_internal(Some(ttl));
+        self.clear_cache();
+    }
+
+    /// 清除当前设备信息缓存。
+    ///
+    /// 这不会关闭缓存功能；后续 `Device::info()` 会重新发起一次 RPC，
+    /// 并在缓存仍启用时写回新的缓存值。
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     device.set_cache_ttl(Duration::from_secs(2));
+    ///     device.clear_cache();
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn clear_cache(&self) {
+        self.with_info_cache_write(|cache| *cache = None);
+    }
+
+    /// 关闭设备信息缓存，并清除已有缓存值。
+    ///
+    /// 调用后，`Device::info()` 会恢复为每次都实时请求设备端。
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use uiautomator::Device;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     device.set_cache_ttl(Duration::from_secs(2));
+    ///     device.disable_cache();
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn disable_cache(&self) {
+        self.set_cache_ttl_internal(None);
+        self.clear_cache();
     }
 
     /// 获取屏幕尺寸
@@ -601,6 +713,11 @@ impl Device {
         Ok((x_abs, y_abs))
     }
 
+    async fn coords_to_abs(&self, x: Coord, y: Coord) -> Result<(u32, u32)> {
+        let (width, height) = self.window_size().await?;
+        Ok((x.to_pixel(width)?, y.to_pixel(height)?))
+    }
+
     /// 点击指定坐标
     ///
     /// # 参数
@@ -644,6 +761,36 @@ impl Device {
         }
 
         Ok(())
+    }
+
+    /// 点击指定坐标，支持像素和百分比坐标。
+    ///
+    /// # 参数
+    ///
+    /// * `x` - X 坐标，支持像素和百分比
+    /// * `y` - Y 坐标，支持像素和百分比
+    ///
+    /// # Errors
+    ///
+    /// 当百分比坐标超出 `0.0..=1.0` 或无法获取屏幕尺寸时返回错误。
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use uiautomator::{Coord, Device};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///
+    ///     device.click_coord(Coord::percent(0.5), Coord::percent(0.5)).await?;
+    ///     device.click_coord(Coord::pixel(200), Coord::pixel(400)).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn click_coord(&self, x: Coord, y: Coord) -> Result<()> {
+        let (x, y) = self.coords_to_abs(x, y).await?;
+        self.click(x, y).await
     }
 
     /// 长按指定坐标
@@ -726,6 +873,47 @@ impl Device {
         Ok(())
     }
 
+    /// 长按指定坐标，支持像素和百分比坐标。
+    ///
+    /// # 参数
+    ///
+    /// * `x` - X 坐标，支持像素和百分比
+    /// * `y` - Y 坐标，支持像素和百分比
+    /// * `duration` - 长按时长，None 表示使用默认值
+    ///
+    /// # Errors
+    ///
+    /// 当百分比坐标超出 `0.0..=1.0` 或无法获取屏幕尺寸时返回错误。
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use uiautomator::{Coord, Device};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     device
+    ///         .long_click_coord(
+    ///             Coord::percent(0.5),
+    ///             Coord::percent(0.5),
+    ///             Some(Duration::from_secs(1)),
+    ///         )
+    ///         .await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn long_click_coord(
+        &self,
+        x: Coord,
+        y: Coord,
+        duration: Option<Duration>,
+    ) -> Result<()> {
+        let (x, y) = self.coords_to_abs(x, y).await?;
+        self.long_click(x, y, duration).await
+    }
+
     /// 双击指定坐标
     ///
     /// # 参数
@@ -800,6 +988,47 @@ impl Device {
         Ok(())
     }
 
+    /// 双击指定坐标，支持像素和百分比坐标。
+    ///
+    /// # 参数
+    ///
+    /// * `x` - X 坐标，支持像素和百分比
+    /// * `y` - Y 坐标，支持像素和百分比
+    /// * `duration` - 两次点击间隔，None 表示使用默认值
+    ///
+    /// # Errors
+    ///
+    /// 当百分比坐标超出 `0.0..=1.0` 或无法获取屏幕尺寸时返回错误。
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use uiautomator::{Coord, Device};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     device
+    ///         .double_click_coord(
+    ///             Coord::percent(0.4),
+    ///             Coord::percent(0.6),
+    ///             Some(Duration::from_millis(150)),
+    ///         )
+    ///         .await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn double_click_coord(
+        &self,
+        x: Coord,
+        y: Coord,
+        duration: Option<Duration>,
+    ) -> Result<()> {
+        let (x, y) = self.coords_to_abs(x, y).await?;
+        self.double_click(x, y, duration).await
+    }
+
     /// 滑动操作
     ///
     /// # 参数
@@ -864,6 +1093,60 @@ impl Device {
         Ok(())
     }
 
+    /// 滑动操作，支持像素和百分比坐标。
+    ///
+    /// # 参数
+    ///
+    /// * `fx` - 起始 X 坐标，支持像素和百分比
+    /// * `fy` - 起始 Y 坐标，支持像素和百分比
+    /// * `tx` - 结束 X 坐标，支持像素和百分比
+    /// * `ty` - 结束 Y 坐标，支持像素和百分比
+    /// * `duration` - 滑动持续时间，None 表示使用默认值
+    ///
+    /// # Errors
+    ///
+    /// 当百分比坐标超出 `0.0..=1.0` 或无法获取屏幕尺寸时返回错误。
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use uiautomator::{Coord, Device};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     device
+    ///         .swipe_coord(
+    ///             Coord::percent(0.8),
+    ///             Coord::percent(0.8),
+    ///             Coord::percent(0.2),
+    ///             Coord::percent(0.2),
+    ///             Some(Duration::from_millis(300)),
+    ///         )
+    ///         .await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn swipe_coord(
+        &self,
+        fx: Coord,
+        fy: Coord,
+        tx: Coord,
+        ty: Coord,
+        duration: Option<Duration>,
+    ) -> Result<()> {
+        let (width, height) = self.window_size().await?;
+        self.swipe(
+            fx.to_pixel(width)?,
+            fy.to_pixel(height)?,
+            tx.to_pixel(width)?,
+            ty.to_pixel(height)?,
+            duration,
+        )
+        .await
+    }
+
     /// 拖拽操作
     ///
     /// # 参数
@@ -926,6 +1209,60 @@ impl Device {
         }
 
         Ok(())
+    }
+
+    /// 拖拽操作，支持像素和百分比坐标。
+    ///
+    /// # 参数
+    ///
+    /// * `sx` - 起始 X 坐标，支持像素和百分比
+    /// * `sy` - 起始 Y 坐标，支持像素和百分比
+    /// * `ex` - 结束 X 坐标，支持像素和百分比
+    /// * `ey` - 结束 Y 坐标，支持像素和百分比
+    /// * `duration` - 拖拽持续时间，None 表示使用默认值
+    ///
+    /// # Errors
+    ///
+    /// 当百分比坐标超出 `0.0..=1.0` 或无法获取屏幕尺寸时返回错误。
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use uiautomator::{Coord, Device};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> uiautomator::Result<()> {
+    ///     let device = Device::connect(None).await?;
+    ///     device
+    ///         .drag_coord(
+    ///             Coord::pixel(100),
+    ///             Coord::percent(0.6),
+    ///             Coord::percent(0.9),
+    ///             Coord::percent(0.6),
+    ///             Some(Duration::from_millis(600)),
+    ///         )
+    ///         .await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn drag_coord(
+        &self,
+        sx: Coord,
+        sy: Coord,
+        ex: Coord,
+        ey: Coord,
+        duration: Option<Duration>,
+    ) -> Result<()> {
+        let (width, height) = self.window_size().await?;
+        self.drag(
+            sx.to_pixel(width)?,
+            sy.to_pixel(height)?,
+            ex.to_pixel(width)?,
+            ey.to_pixel(height)?,
+            duration,
+        )
+        .await
     }
 
     /// 查找 UI 元素
@@ -1560,6 +1897,75 @@ impl Device {
                 Ok(())
             }
         }
+    }
+
+    fn with_info_cache_read<T>(
+        &self,
+        reader: impl FnOnce(&Option<CacheEntry<DeviceInfo>>) -> T,
+    ) -> T {
+        match self.info_cache.read() {
+            Ok(cache) => reader(&cache),
+            Err(poisoned) => {
+                warn!("Device info cache read lock poisoned, recovering");
+                let cache = poisoned.into_inner();
+                reader(&cache)
+            }
+        }
+    }
+
+    fn with_info_cache_write<T>(
+        &self,
+        writer: impl FnOnce(&mut Option<CacheEntry<DeviceInfo>>) -> T,
+    ) -> T {
+        match self.info_cache.write() {
+            Ok(mut cache) => writer(&mut cache),
+            Err(poisoned) => {
+                warn!("Device info cache write lock poisoned, recovering");
+                let mut cache = poisoned.into_inner();
+                writer(&mut cache)
+            }
+        }
+    }
+
+    fn cache_ttl(&self) -> Option<Duration> {
+        match self.cache_ttl.read() {
+            Ok(ttl) => *ttl,
+            Err(poisoned) => {
+                warn!("Device info cache TTL lock poisoned, recovering");
+                *poisoned.into_inner()
+            }
+        }
+    }
+
+    fn set_cache_ttl_internal(&self, ttl: Option<Duration>) {
+        match self.cache_ttl.write() {
+            Ok(mut cache_ttl) => *cache_ttl = ttl,
+            Err(poisoned) => {
+                warn!("Device info cache TTL lock poisoned, recovering");
+                *poisoned.into_inner() = ttl;
+            }
+        }
+    }
+
+    fn get_cached_info(&self, ttl: Duration) -> Option<DeviceInfo> {
+        self.with_info_cache_read(|cache| {
+            cache.as_ref().and_then(|entry| {
+                if entry.cached_at.elapsed() <= ttl {
+                    Some(entry.value.clone())
+                } else {
+                    None
+                }
+            })
+        })
+    }
+
+    fn store_cached_info(&self, info: DeviceInfo) {
+        self.with_info_cache_write(|cache| {
+            *cache = Some(CacheEntry {
+                value: info,
+                cached_at: Instant::now(),
+            });
+        });
     }
 
     /// 从 shell 输出中提取退出码，并返回去除退出码标记后的输出内容。
