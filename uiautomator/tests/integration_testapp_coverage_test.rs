@@ -606,38 +606,47 @@ async fn test_gesture_apis_with_real_ui_feedback() {
         "expected left swipe feedback, got: {swipe_text}"
     );
 
-    retry_uiaction(
-        "tv_long_click_area.long_click",
-        4,
-        Duration::from_millis(250),
-        || async {
-            device
-                .find(Selector::new().resource_id(app_id("tv_long_click_area")))
-                .long_click(
-                    Some(Duration::from_millis(1200)),
-                    Some(Duration::from_secs(5)),
-                )
-                .await
-        },
-    )
-    .await;
-    let mut long_press_updated = device
-        .wait_for(
-            || {
-                let area = device.find(Selector::new().resource_id(app_id("tv_long_click_area")));
-                async move {
-                    Ok(area
-                        .get_text()
-                        .await
-                        .unwrap_or_default()
-                        .contains("Long Pressed!"))
-                }
+    let check_long_press_updated = || async {
+        device
+            .wait_for(
+                || {
+                    let area = device.find(Selector::new().resource_id(app_id("tv_long_click_area")));
+                    async move {
+                        Ok(area
+                            .get_text()
+                            .await
+                            .unwrap_or_default()
+                            .contains("Long Pressed!"))
+                    }
+                },
+                Some(Duration::from_secs(3)),
+            )
+            .await
+            .is_ok()
+    };
+    let mut long_press_updated = false;
+    for duration in [
+        Duration::from_millis(1200),
+        Duration::from_millis(1800),
+        Duration::from_millis(2500),
+    ] {
+        retry_uiaction(
+            "tv_long_click_area.long_click",
+            4,
+            Duration::from_millis(250),
+            || async {
+                device
+                    .find(Selector::new().resource_id(app_id("tv_long_click_area")))
+                    .long_click(Some(duration), Some(Duration::from_secs(5)))
+                    .await
             },
-            Some(Duration::from_secs(3)),
         )
-        .await
-        .is_ok();
-    if !long_press_updated {
+        .await;
+        long_press_updated = check_long_press_updated().await;
+        if long_press_updated {
+            break;
+        }
+
         let (long_x, long_y) = retry_uiaction(
             "tv_long_click_area.center",
             4,
@@ -650,27 +659,13 @@ async fn test_gesture_apis_with_real_ui_feedback() {
             },
         )
         .await;
-        device
-            .long_click(long_x, long_y, Some(Duration::from_millis(1200)))
-            .await
-            .unwrap();
-        long_press_updated = device
-            .wait_for(
-                || {
-                    let area =
-                        device.find(Selector::new().resource_id(app_id("tv_long_click_area")));
-                    async move {
-                        Ok(area
-                            .get_text()
-                            .await
-                            .unwrap_or_default()
-                            .contains("Long Pressed!"))
-                    }
-                },
-                Some(Duration::from_secs(3)),
-            )
-            .await
-            .is_ok();
+        device.long_click(long_x, long_y, Some(duration)).await.unwrap();
+        long_press_updated = check_long_press_updated().await;
+        if long_press_updated {
+            break;
+        }
+
+        common::wait_ui_stable().await;
     }
     let long_text = retry_uiaction(
         "tv_long_click_area.get_text",
