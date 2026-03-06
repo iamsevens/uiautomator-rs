@@ -612,10 +612,11 @@ impl Device {
         }
 
         // 调用 JSON-RPC 的 click 方法
-        let _: serde_json::Value = self
+        let result: serde_json::Value = self
             .jsonrpc_client
             .call("click", serde_json::json!([x, y]))
             .await?;
+        Self::ensure_action_rpc_result("click", result)?;
 
         if delay_after > Duration::from_millis(0) {
             tokio::time::sleep(delay_after).await;
@@ -669,7 +670,9 @@ impl Device {
             .call("longClick", serde_json::json!([x, y, duration_secs]))
             .await
         {
-            Ok::<serde_json::Value, Error>(_value) => {}
+            Ok::<serde_json::Value, Error>(value) => {
+                Self::ensure_action_rpc_result("longClick", value)?;
+            }
             Err(error) => {
                 if Self::is_jsonrpc_method_unavailable_error(&error)
                     || Self::is_jsonrpc_method_params_invalid_error(&error)
@@ -683,10 +686,11 @@ impl Device {
                             "ADB input long press fallback failed: {:?}, fallback to JSON-RPC swipe hold",
                             shell_error
                         );
-                        let _: serde_json::Value = self
+                        let swipe_result: serde_json::Value = self
                             .jsonrpc_client
                             .call("swipe", serde_json::json!([x, y, x, y, duration_secs]))
                             .await?;
+                        Self::ensure_action_rpc_result("swipe", swipe_result)?;
                     }
                 } else {
                     return Err(error);
@@ -1106,7 +1110,13 @@ impl Device {
     /// }
     /// ```
     pub fn get_polling_interval(&self) -> Duration {
-        self.with_settings_read(|settings| settings.polling_interval)
+        self.with_settings_read(|settings| {
+            if settings.polling_interval.is_zero() {
+                Duration::from_millis(500)
+            } else {
+                settings.polling_interval
+            }
+        })
     }
 
     /// 轮询等待条件满足（辅助函数）
@@ -1512,6 +1522,23 @@ impl Device {
         info!("截图已保存到: {}", path);
 
         Ok(())
+    }
+
+    fn ensure_action_rpc_result(method: &str, result: serde_json::Value) -> Result<()> {
+        match result {
+            serde_json::Value::Bool(true) => Ok(()),
+            serde_json::Value::Bool(false) => Err(Error::JsonRpc(format!(
+                "{} returned false (action failed)",
+                method
+            ))),
+            other => {
+                debug!(
+                    "JSON-RPC {} returned non-boolean result, treating as success: {:?}",
+                    method, other
+                );
+                Ok(())
+            }
+        }
     }
 
     /// 从 shell 输出中提取退出码，并返回去除退出码标记后的输出内容。

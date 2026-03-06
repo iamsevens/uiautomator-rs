@@ -603,6 +603,7 @@ impl Installer {
     /// ```
     pub async fn uninstall(&self) -> Result<()> {
         info!("🗑️  卸载 ATX-Agent");
+        let mut failures = Vec::new();
 
         // 1. 停止服务
         info!("停止 atx-agent 服务...");
@@ -626,7 +627,7 @@ impl Installer {
         };
         if let Err(e) = stop_result {
             warn!("停止服务时出现错误（可能未运行）: {}", e);
-            // 继续执行卸载，即使停止失败
+            failures.push(format!("stop atx-agent failed: {}", e));
         }
 
         // 2. 删除二进制文件
@@ -641,12 +642,12 @@ impl Installer {
             .await
         {
             warn!("删除二进制文件时出现错误: {}", e);
-            // 继续执行
+            failures.push(format!("remove atx-agent binary failed: {}", e));
         }
 
         // 3. 卸载 UiAutomator APK
         info!("卸载 UiAutomator APK...");
-        if let Err(e) = self
+        match self
             .adb_client
             .shell(
                 &self.device_serial,
@@ -655,13 +656,27 @@ impl Installer {
             )
             .await
         {
-            warn!("卸载 UiAutomator APK 时出现错误: {}", e);
-            // 继续执行
+            Ok(output) => {
+                let lower = output.to_lowercase();
+                if lower.contains("failure")
+                    && !lower.contains("not installed")
+                    && !lower.contains("unknown package")
+                {
+                    failures.push(format!(
+                        "uninstall com.github.uiautomator failed: {}",
+                        output.trim()
+                    ));
+                }
+            }
+            Err(e) => {
+                warn!("卸载 UiAutomator APK 时出现错误: {}", e);
+                failures.push(format!("uninstall com.github.uiautomator failed: {}", e));
+            }
         }
 
         // 4. 卸载 UiAutomator Test APK
         info!("卸载 UiAutomator Test APK...");
-        if let Err(e) = self
+        match self
             .adb_client
             .shell(
                 &self.device_serial,
@@ -670,8 +685,29 @@ impl Installer {
             )
             .await
         {
-            warn!("卸载 UiAutomator Test APK 时出现错误: {}", e);
-            // 继续执行
+            Ok(output) => {
+                let lower = output.to_lowercase();
+                if lower.contains("failure")
+                    && !lower.contains("not installed")
+                    && !lower.contains("unknown package")
+                {
+                    failures.push(format!(
+                        "uninstall com.github.uiautomator.test failed: {}",
+                        output.trim()
+                    ));
+                }
+            }
+            Err(e) => {
+                warn!("卸载 UiAutomator Test APK 时出现错误: {}", e);
+                failures.push(format!(
+                    "uninstall com.github.uiautomator.test failed: {}",
+                    e
+                ));
+            }
+        }
+
+        if !failures.is_empty() {
+            return Err(anyhow!("ATX-Agent 卸载不完整: {}", failures.join(" | ")));
         }
 
         info!("✅ ATX-Agent 卸载完成");

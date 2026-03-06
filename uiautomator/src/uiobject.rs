@@ -134,6 +134,40 @@ impl UiObject {
         }
     }
 
+    fn has_specific_selector(&self) -> bool {
+        self.selector.text.is_some()
+            || self.selector.text_contains.is_some()
+            || self.selector.text_starts_with.is_some()
+            || self.selector.text_matches.is_some()
+            || self.selector.resource_id.is_some()
+            || self.selector.class_name_matches.is_some()
+            || self.selector.description.is_some()
+            || self.selector.description_contains.is_some()
+            || self.selector.description_matches.is_some()
+            || self.selector.description_starts_with.is_some()
+            || self.selector.package_name.is_some()
+            || self.selector.package_name_matches.is_some()
+            || self.selector.resource_id_matches.is_some()
+            || self.selector.clickable.is_some()
+            || self.selector.enabled.is_some()
+            || self.selector.focusable.is_some()
+            || self.selector.scrollable.is_some()
+            || self.selector.instance.is_some()
+            || self.selector.checkable.is_some()
+            || self.selector.checked.is_some()
+            || self.selector.long_clickable.is_some()
+            || self.selector.focused.is_some()
+            || self.selector.selected.is_some()
+            || self.selector.index.is_some()
+            || !self.selector.child_or_sibling.is_empty()
+            || (self.selector.class_name.is_some()
+                && !self
+                    .selector
+                    .class_name
+                    .as_ref()
+                    .is_some_and(|class_name| class_name.contains("FrameLayout")))
+    }
+
     /// 通用轮询方法
     ///
     /// 使用指定的条件函数进行轮询，直到条件满足或超时。
@@ -398,18 +432,7 @@ impl UiObject {
 
         if is_likely_root {
             // 如果选择器指定了具体的属性，但返回的是根元素，说明未找到
-            let has_specific_selector = self.selector.text.is_some()
-                || self.selector.text_contains.is_some()
-                || self.selector.resource_id.is_some()
-                || (self.selector.class_name.is_some()
-                    && !self
-                        .selector
-                        .class_name
-                        .as_ref()
-                        .unwrap()
-                        .contains("FrameLayout"));
-
-            if has_specific_selector {
+            if self.has_specific_selector() {
                 return Err(Error::ElementNotFound {
                     selector: format!("{:?}", self.selector),
                 });
@@ -436,6 +459,15 @@ impl UiObject {
                 }
             }
 
+            // 验证 text_starts_with
+            if let Some(ref text_starts_with) = self.selector.text_starts_with {
+                if !element_info.text.starts_with(text_starts_with) {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
             // 验证 resource_id
             if let Some(ref resource_id) = self.selector.resource_id {
                 if element_info.resource_id != *resource_id {
@@ -448,6 +480,116 @@ impl UiObject {
             // 验证 class_name
             if let Some(ref class_name) = self.selector.class_name {
                 if element_info.class_name != *class_name {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(ref description) = self.selector.description {
+                if element_info.content_description != *description {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(ref description_contains) = self.selector.description_contains {
+                if !element_info
+                    .content_description
+                    .contains(description_contains)
+                {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(ref description_starts_with) = self.selector.description_starts_with {
+                if !element_info
+                    .content_description
+                    .starts_with(description_starts_with)
+                {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(ref package_name) = self.selector.package_name {
+                if element_info.package_name != *package_name {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(clickable) = self.selector.clickable {
+                if element_info.clickable != clickable {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(enabled) = self.selector.enabled {
+                if element_info.enabled != enabled {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(focusable) = self.selector.focusable {
+                if element_info.focusable != focusable {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(scrollable) = self.selector.scrollable {
+                if element_info.scrollable != scrollable {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(checkable) = self.selector.checkable {
+                if element_info.checkable != checkable {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(checked) = self.selector.checked {
+                if element_info.checked != checked {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(long_clickable) = self.selector.long_clickable {
+                if element_info.long_clickable != long_clickable {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(focused) = self.selector.focused {
+                if element_info.focused != focused {
+                    return Err(Error::ElementNotFound {
+                        selector: format!("{:?}", self.selector),
+                    });
+                }
+            }
+
+            if let Some(selected) = self.selector.selected {
+                if element_info.selected != selected {
                     return Err(Error::ElementNotFound {
                         selector: format!("{:?}", self.selector),
                     });
@@ -554,9 +696,11 @@ impl UiObject {
     /// ```
     pub async fn click(
         &self,
-        _timeout_duration: Option<Duration>,
+        timeout_duration: Option<Duration>,
         offset: Option<(f32, f32)>,
     ) -> Result<()> {
+        self.wait(timeout_duration).await?;
+
         // 1. 获取元素信息(包括坐标)
         let info = self.info().await?;
 
@@ -572,12 +716,9 @@ impl UiObject {
             (cx as f32, cy as f32)
         };
 
-        // 3. 调用 click JSON-RPC (参数是坐标)
-        let client = self.device.jsonrpc_client();
-        let params = serde_json::json!((click_x, click_y));
-        let _result: serde_json::Value = client.call("click", params).await?;
-
-        Ok(())
+        self.device
+            .click(click_x.round() as u32, click_y.round() as u32)
+            .await
     }
 
     /// 如果元素存在则点击
@@ -642,8 +783,10 @@ impl UiObject {
     pub async fn long_click(
         &self,
         duration: Option<Duration>,
-        _timeout_duration: Option<Duration>,
+        timeout_duration: Option<Duration>,
     ) -> Result<()> {
+        self.wait(timeout_duration).await?;
+
         // 1. 获取元素信息（验证元素存在）
         let info = self.info().await?;
 
