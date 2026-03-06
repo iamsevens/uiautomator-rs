@@ -16,6 +16,10 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+if ($Serial -notmatch '^[A-Za-z0-9._:-]+$') {
+    throw "invalid serial format: '$Serial'"
+}
+
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [Console]::InputEncoding = $utf8NoBom
 [Console]::OutputEncoding = $utf8NoBom
@@ -221,6 +225,37 @@ function Invoke-Adb {
     }
 }
 
+function Remove-ManagedForwards {
+    $forwardList = Invoke-Adb -CmdArgs @("forward", "--list") -AllowFailure
+    if ($forwardList.ExitCode -ne 0) {
+        return
+    }
+
+    foreach ($line in ($forwardList.Output -split "`r?`n")) {
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed)) {
+            continue
+        }
+
+        $parts = $trimmed -split "\s+"
+        if ($parts.Count -lt 3) {
+            continue
+        }
+
+        $lineSerial = $parts[0]
+        $localPort = $parts[1]
+        $remotePort = $parts[2]
+
+        if ($lineSerial -ne $Serial) {
+            continue
+        }
+
+        if ($remotePort -in @("tcp:7912", "tcp:9008")) {
+            Invoke-Adb -CmdArgs @("forward", "--remove", $localPort) -AllowFailure | Out-Null
+        }
+    }
+}
+
 function Start-StepProcess {
     param(
         [string]$Name,
@@ -326,7 +361,7 @@ try {
     Invoke-Adb -CmdArgs @("shell", "am", "force-stop", "com.github.uiautomator.test") -AllowFailure | Out-Null
     Invoke-Adb -CmdArgs @("shell", "pm", "uninstall", "com.github.uiautomator") -AllowFailure | Out-Null
     Invoke-Adb -CmdArgs @("shell", "pm", "uninstall", "com.github.uiautomator.test") -AllowFailure | Out-Null
-    Invoke-Adb -CmdArgs @("forward", "--remove-all") -AllowFailure | Out-Null
+    Remove-ManagedForwards
     Add-Summary -Step "cleanup" -Status "ok" -Detail "cleanup completed"
 
     Write-Step "cargo install uiautomator-cli in isolated root"

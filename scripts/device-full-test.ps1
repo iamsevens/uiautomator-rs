@@ -28,6 +28,10 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+if ($Serial -notmatch '^[A-Za-z0-9._:-]+$') {
+    throw "invalid serial format: '$Serial'"
+}
+
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [Console]::InputEncoding = $utf8NoBom
 [Console]::OutputEncoding = $utf8NoBom
@@ -265,6 +269,37 @@ function Invoke-Adb {
     return [PSCustomObject]@{
         ExitCode = $code
         Output   = $text
+    }
+}
+
+function Remove-ManagedForwards {
+    $forwardList = Invoke-Adb -CmdArgs @("forward", "--list") -AllowFailure
+    if ($forwardList.ExitCode -ne 0) {
+        return
+    }
+
+    foreach ($line in ($forwardList.Output -split "`r?`n")) {
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed)) {
+            continue
+        }
+
+        $parts = $trimmed -split "\s+"
+        if ($parts.Count -lt 3) {
+            continue
+        }
+
+        $lineSerial = $parts[0]
+        $localPort = $parts[1]
+        $remotePort = $parts[2]
+
+        if ($lineSerial -ne $Serial) {
+            continue
+        }
+
+        if ($remotePort -in @("tcp:7912", "tcp:9008")) {
+            Invoke-Adb -CmdArgs @("forward", "--remove", $localPort) -AllowFailure | Out-Null
+        }
     }
 }
 
@@ -584,9 +619,9 @@ try {
             $cleanupCliResult = Start-StepProcess `
                 -Name "cleanup_cli_uninstall" `
                 -WorkingDirectory (Join-Path $repoRoot "uiautomator-cli") `
-                -Command "cargo run -- uninstall -s $Serial" `
+                -Command "cargo run -- uninstall -s '$Serial'" `
                 -TimeoutMinutes 10
-            Add-Summary -Step "cleanup_cli_uninstall" -Status "ok" -Detail "cargo run -- uninstall -s $Serial" -DurationSeconds $cleanupCliResult.DurationSeconds -ExitCode $cleanupCliResult.ExitCode -StdoutPath $cleanupCliResult.Stdout -StderrPath $cleanupCliResult.Stderr
+            Add-Summary -Step "cleanup_cli_uninstall" -Status "ok" -Detail "cargo run -- uninstall -s '$Serial'" -DurationSeconds $cleanupCliResult.DurationSeconds -ExitCode $cleanupCliResult.ExitCode -StdoutPath $cleanupCliResult.Stdout -StderrPath $cleanupCliResult.Stderr
         }
         catch {
             Write-Host "cleanup uninstall returned non-zero, continue with manual cleanup"
@@ -608,7 +643,7 @@ try {
         Invoke-Adb -CmdArgs @("shell", "am", "force-stop", "com.github.uiautomator.test") -AllowFailure | Out-Null
         Invoke-Adb -CmdArgs @("shell", "pm", "uninstall", "com.github.uiautomator") -AllowFailure | Out-Null
         Invoke-Adb -CmdArgs @("shell", "pm", "uninstall", "com.github.uiautomator.test") -AllowFailure | Out-Null
-        Invoke-Adb -CmdArgs @("forward", "--remove-all") -AllowFailure | Out-Null
+        Remove-ManagedForwards
 
         $checkAtx = Invoke-Adb -CmdArgs @("shell", "if [ -f /data/local/tmp/atx-agent ]; then echo yes; else echo no; fi")
         if ($checkAtx.Output.Trim() -eq "yes") {
@@ -626,15 +661,15 @@ try {
         $initResult = Start-StepProcess `
             -Name "init_force" `
             -WorkingDirectory (Join-Path $repoRoot "uiautomator-cli") `
-            -Command "cargo run -- init -f -s $Serial" `
+            -Command "cargo run -- init -f -s '$Serial'" `
             -TimeoutMinutes 15
-        Add-Summary -Step "init_force" -Status "ok" -Detail "uiautomator-cli init -f -s $Serial" -DurationSeconds $initResult.DurationSeconds -ExitCode $initResult.ExitCode -StdoutPath $initResult.Stdout -StderrPath $initResult.Stderr
+        Add-Summary -Step "init_force" -Status "ok" -Detail "uiautomator-cli init -f -s '$Serial'" -DurationSeconds $initResult.DurationSeconds -ExitCode $initResult.ExitCode -StdoutPath $initResult.Stdout -StderrPath $initResult.Stderr
 
         Write-Step "Verify runtime environment after init"
         $statusResult = Start-StepProcess `
             -Name "verify_cli_status" `
             -WorkingDirectory (Join-Path $repoRoot "uiautomator-cli") `
-            -Command "cargo run -- status -s $Serial" `
+            -Command "cargo run -- status -s '$Serial'" `
             -TimeoutMinutes 10
 
         $atxBinary = Invoke-Adb -CmdArgs @("shell", "ls", "/data/local/tmp/atx-agent") -AllowFailure
