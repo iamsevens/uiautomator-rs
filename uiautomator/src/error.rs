@@ -250,8 +250,8 @@ impl Error {
     /// let err = Error::DeviceNotFound;
     /// assert_eq!(err.code(), 1001);
     ///
-    /// let err = Error::ElementNotFound { selector: "text=Button".to_string() };
-    /// assert_eq!(err.code(), 2001);
+    /// let err = Error::Timeout;
+    /// assert_eq!(err.code(), 5001);
     /// ```
     pub fn code(&self) -> u32 {
         match self {
@@ -309,8 +309,8 @@ impl Error {
     /// let err = Error::DeviceNotFound;
     /// assert_eq!(err.category(), "Device");
     ///
-    /// let err = Error::ElementNotFound { selector: "text=Button".to_string() };
-    /// assert_eq!(err.category(), "Element");
+    /// let err = Error::Timeout;
+    /// assert_eq!(err.category(), "Other");
     /// ```
     pub fn category(&self) -> &'static str {
         match self {

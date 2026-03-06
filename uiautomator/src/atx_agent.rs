@@ -13,8 +13,9 @@ use crate::error::{Error, Result};
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::net::{Ipv4Addr, TcpListener};
+use std::path::Path;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// ATX-Agent 默认端口
 const ATX_AGENT_PORT: u16 = 7912;
@@ -94,6 +95,26 @@ pub struct AtxAgentClient {
 }
 
 impl AtxAgentClient {
+    fn unique_temp_file_path(prefix: &str, suffix: &str) -> std::path::PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "{}-{}-{}{}",
+            prefix,
+            std::process::id(),
+            timestamp,
+            suffix
+        ))
+    }
+
+    fn utf8_path(path: &Path) -> Result<String> {
+        path.to_str().map(|value| value.to_string()).ok_or_else(|| {
+            Error::InvalidArgument(format!("path is not valid UTF-8: {}", path.display()))
+        })
+    }
+
     /// 创建 ATX-Agent 客户端
     ///
     /// 假设设备上已安装并启动 atx-agent。
@@ -876,19 +897,14 @@ impl AtxAgentClient {
 
     #[cfg(feature = "atx-agent-install")]
     async fn push_and_verify_atx_agent_binary(&self, binary: EmbeddedAtxAgentBinary) -> Result<()> {
-        let temp_dir = std::env::temp_dir();
-        let temp_path = temp_dir.join(format!("atx-agent-{}", binary.label));
+        let temp_path = Self::unique_temp_file_path(&format!("atx-agent-{}", binary.label), "");
 
         std::fs::write(&temp_path, binary.bytes).map_err(Error::Io)?;
-        let temp_path_str = temp_path.to_str().ok_or_else(|| {
-            Error::InvalidArgument(
-                "failed to convert temporary atx-agent path to string".to_string(),
-            )
-        })?;
+        let temp_path_str = Self::utf8_path(&temp_path)?;
 
         let push_result = self
             .adb_client
-            .push(&self.device_serial, temp_path_str, ATX_AGENT_DEVICE_PATH)
+            .push(&self.device_serial, &temp_path_str, ATX_AGENT_DEVICE_PATH)
             .await
             .map_err(|e| {
                 Error::Adb(format!(
@@ -1161,21 +1177,19 @@ impl AtxAgentClient {
         info!("安装 {}", name);
 
         // 写入临时文件
-        let temp_dir = std::env::temp_dir();
-        let temp_path = temp_dir.join(name);
+        let temp_path = Self::unique_temp_file_path(name, ".apk");
+        let temp_path_str = Self::utf8_path(&temp_path)?;
 
         std::fs::write(&temp_path, apk_data).map_err(Error::Io)?;
 
         // 推送到设备
         let device_path = format!("/data/local/tmp/{}", name);
-        self.adb_client
-            .push(
-                &self.device_serial,
-                temp_path.to_str().unwrap(),
-                &device_path,
-            )
-            .await
-            .map_err(|e| Error::Adb(format!("推送 {} 失败: {}", name, e)))?;
+        let push_result = self
+            .adb_client
+            .push(&self.device_serial, &temp_path_str, &device_path)
+            .await;
+        let _ = std::fs::remove_file(&temp_path);
+        push_result.map_err(|e| Error::Adb(format!("推送 {} 失败: {}", name, e)))?;
 
         // 安装 APK
         let output = self
@@ -1201,9 +1215,6 @@ impl AtxAgentClient {
                 Some(Duration::from_secs(10)),
             )
             .await;
-
-        // 清理临时文件
-        let _ = std::fs::remove_file(&temp_path);
 
         info!("{} 安装成功", name);
         Ok(())

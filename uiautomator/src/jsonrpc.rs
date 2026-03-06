@@ -10,9 +10,10 @@ use crate::settings::Settings;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::net::{Ipv4Addr, TcpListener};
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// 嵌入的 u2.jar 文件
 const U2_JAR: &[u8] = include_bytes!("../assets/u2.jar");
@@ -407,7 +408,7 @@ impl JsonRpcClient {
                     poisoned.into_inner()
                 }
             };
-            (settings.max_retry, settings.retry_base_delay)
+            (settings.max_retry.max(1), settings.retry_base_delay)
         };
 
         let mut last_error = None;
@@ -750,22 +751,20 @@ impl JsonRpcClient {
         info!("推送 u2.jar 到设备 {}", self.device_serial);
 
         // 将嵌入的 JAR 写入临时文件
-        let temp_dir = std::env::temp_dir();
-        let temp_jar_path = temp_dir.join(format!("u2_{}.jar", U2_JAR_MD5));
+        let temp_jar_path = Self::unique_temp_file_path("u2", ".jar");
+        let temp_jar_path_str = Self::utf8_path(&temp_jar_path)?;
 
         tokio::fs::write(&temp_jar_path, U2_JAR).await?;
 
         // 推送到设备
-        self.adb_client
-            .push(
-                &self.device_serial,
-                temp_jar_path.to_str().unwrap(),
-                target_path,
-            )
-            .await?;
+        let push_result = self
+            .adb_client
+            .push(&self.device_serial, &temp_jar_path_str, target_path)
+            .await;
 
         // 清理临时文件
         let _ = tokio::fs::remove_file(&temp_jar_path).await;
+        push_result?;
 
         info!("u2.jar 推送成功");
         Ok(())
@@ -865,6 +864,26 @@ impl JsonRpcClient {
             .port();
         drop(listener);
         Ok(local_port)
+    }
+
+    fn unique_temp_file_path(prefix: &str, suffix: &str) -> std::path::PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "{}-{}-{}{}",
+            prefix,
+            std::process::id(),
+            timestamp,
+            suffix
+        ))
+    }
+
+    fn utf8_path(path: &Path) -> Result<String> {
+        path.to_str().map(|value| value.to_string()).ok_or_else(|| {
+            Error::InvalidArgument(format!("path is not valid UTF-8: {}", path.display()))
+        })
     }
 
     /// 建立 ADB 端口转发（Direct 模式专用）

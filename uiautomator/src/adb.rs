@@ -8,6 +8,7 @@ use adb_client::server_device::ADBServerDevice;
 use adb_client::ADBDeviceExt;
 use log::{debug, info, warn};
 use std::net::{Ipv4Addr, SocketAddrV4};
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 /// ADB 客户端
@@ -32,10 +33,21 @@ pub struct AdbClient {
 }
 
 impl AdbClient {
+    const MAX_CONCURRENT_TIMEOUT_SHELLS: usize = 4;
+
     /// shell v2 数据流中的 stdout/stderr/exit packet 类型
     const SHELL_V2_STDOUT: u8 = 1;
     const SHELL_V2_STDERR: u8 = 2;
     const SHELL_V2_EXIT: u8 = 3;
+
+    fn timeout_shell_semaphore() -> &'static Arc<tokio::sync::Semaphore> {
+        static SEMAPHORE: OnceLock<Arc<tokio::sync::Semaphore>> = OnceLock::new();
+        SEMAPHORE.get_or_init(|| {
+            Arc::new(tokio::sync::Semaphore::new(
+                Self::MAX_CONCURRENT_TIMEOUT_SHELLS,
+            ))
+        })
+    }
 
     /// 创建一个未做连通性检查的客户端。
     ///
@@ -180,14 +192,25 @@ impl AdbClient {
         let command = command.to_string();
 
         let result = if let Some(timeout) = timeout {
-            // 超时路径使用独立 OS 线程执行，避免 spawn_blocking 任务超时后残留，
-            // 导致 tokio runtime 在测试结束时被阻塞。
+            let semaphore = Arc::clone(Self::timeout_shell_semaphore());
+            let permit = tokio::time::timeout(timeout, semaphore.acquire_owned())
+                .await
+                .map_err(|_| {
+                    warn!(
+                        "Shell 命令超时（等待可用工作线程）: serial={}, command={}",
+                        serial, command
+                    );
+                    Error::Timeout
+                })?
+                .map_err(|_| Error::Internal("timeout shell semaphore closed".to_string()))?;
+
             let (tx, rx) = tokio::sync::oneshot::channel();
             let serial_clone = serial.clone();
             let command_clone = command.clone();
             std::thread::Builder::new()
                 .name("uiautomator-adb-shell".to_string())
                 .spawn(move || {
+                    let _permit = permit;
                     let result = Self::run_shell_blocking(serial_clone, command_clone);
                     let _ = tx.send(result);
                 })

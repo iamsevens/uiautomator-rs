@@ -204,7 +204,12 @@ impl Settings {
     /// assert_eq!(settings.max_retry, 5);
     /// ```
     pub fn set_max_retry(&mut self, max_retry: u32) {
-        self.max_retry = max_retry;
+        if max_retry == 0 {
+            log::warn!("max_retry 不应为 0，使用最小值 1");
+            self.max_retry = 1;
+        } else {
+            self.max_retry = max_retry;
+        }
     }
 
     /// 设置轮询间隔
@@ -224,7 +229,12 @@ impl Settings {
     /// assert_eq!(settings.polling_interval.as_millis(), 300);
     /// ```
     pub fn set_polling_interval(&mut self, interval: Duration) {
-        self.polling_interval = interval;
+        if interval.is_zero() {
+            log::warn!("polling_interval 不应为零，恢复默认值 500ms");
+            self.polling_interval = Duration::from_millis(500);
+        } else {
+            self.polling_interval = interval;
+        }
     }
 
     /// 设置重试基础延迟
@@ -379,7 +389,7 @@ impl Settings {
     /// assert_eq!(settings.max_retry, 6);
     /// ```
     pub fn with_max_retry(mut self, max_retry: u32) -> Self {
-        self.max_retry = max_retry;
+        self.set_max_retry(max_retry);
         self
     }
 
@@ -404,7 +414,7 @@ impl Settings {
     /// assert_eq!(settings.polling_interval.as_millis(), 300);
     /// ```
     pub fn with_polling_interval(mut self, interval: Duration) -> Self {
-        self.polling_interval = interval;
+        self.set_polling_interval(interval);
         self
     }
 
