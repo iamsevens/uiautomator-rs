@@ -201,6 +201,32 @@ function Start-LauncherCommand {
     }
 }
 
+function Invoke-LauncherCommandSync {
+    param(
+        [string]$Name,
+        [string]$Command,
+        [switch]$AllowFailure
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Command)) {
+        Write-Host "[$Name] command is empty. skip."
+        return $true
+    }
+
+    Write-Host "[$Name] run command: $Command"
+    $res = & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command $Command 2>&1
+    $code = $LASTEXITCODE
+    if ($code -ne 0) {
+        $text = ($res | ForEach-Object { $_.ToString() }) -join "`n"
+        if ($AllowFailure) {
+            Write-Host "[$Name] command failed but ignored (exit=$code): $text"
+            return $false
+        }
+        throw "[$Name] command failed (exit=$code): $text"
+    }
+    return $true
+}
+
 function Get-AdbDeviceStates {
     $res = Invoke-AdbRaw -CmdArgs @("devices")
     $states = @{}
@@ -336,6 +362,9 @@ if ($isTcpSerial) {
 
 Write-Step "Wait for target serial online: $Serial"
 $deadline = (Get-Date).AddSeconds($WaitTimeoutSeconds)
+$recoverAfterSeconds = [Math]::Min([Math]::Max([int]($WaitTimeoutSeconds / 3), 30), 120)
+$recoverDeadline = (Get-Date).AddSeconds($recoverAfterSeconds)
+$ldplayerRecovered = $false
 $attempt = 0
 $lastState = ""
 
@@ -364,6 +393,29 @@ while ((Get-Date) -lt $deadline) {
         }
     }
     else {
+        if ($isEmulatorSerial -and $shouldHandleEmulator -and -not $ldplayerRecovered -and (Get-Date) -ge $recoverDeadline) {
+            Write-Host "[LDPlayer] serial still missing after ${recoverAfterSeconds}s; trying one auto-recovery restart."
+            $ldplayerRecovered = $true
+
+            $null = Invoke-LauncherCommandSync -Name "LDPlayer-stop-recovery" -Command $LdplayerStopCommand -AllowFailure
+            Start-Sleep -Seconds ([Math]::Min([Math]::Max($PollIntervalSeconds, 2), 8))
+
+            $launcher = Start-LauncherCommand -Name "LDPlayer-restart" -Command $LdplayerStartCommand -StopCommand $LdplayerStopCommand
+            if ($null -ne $launcher) {
+                $startedLaunchers.Add($launcher)
+            }
+
+            $ldconsolePath = Resolve-LdplayerConsolePath -StartCommand $LdplayerStartCommand
+            $ldIndex = Resolve-LdplayerIndex -StartCommand $LdplayerStartCommand
+            $ldReady = Wait-LdplayerRunning -LdconsolePath $ldconsolePath -Index $ldIndex -TimeoutSeconds 60 -PollIntervalSeconds ([Math]::Min([Math]::Max($PollIntervalSeconds, 1), 5))
+            if (-not $ldReady) {
+                Write-Host "[LDPlayer] recovery restart probe failed (index=$ldIndex), continue waiting for adb state."
+            }
+            else {
+                Write-Host "[LDPlayer] recovery restart probe passed: index=$ldIndex"
+            }
+        }
+
         if ($attempt % [Math]::Max([int](20 / $PollIntervalSeconds), 1) -eq 0) {
             Write-Host "waiting for serial: $Serial"
         }
