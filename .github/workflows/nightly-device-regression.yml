@@ -134,19 +134,6 @@ jobs:
         run: |
           C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ matrix.serial }}" -Context "target=${{ matrix.name }} serial=${{ matrix.serial }}" -AllowMissingManifest
 
-      - name: Upload nightly artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: nightly-regression-${{ matrix.name }}-${{ env.SAFE_SERIAL }}
-          path: |
-            ${{ env.MANIFEST_PATH }}
-            ${{ env.RUN_SUMMARY_JSON }}
-            ${{ env.RUN_SUMMARY_JUNIT }}
-            ${{ env.RUN_LOG_DIR }}
-          if-no-files-found: warn
-          retention-days: 7
-
       - name: Enforce summary status
         if: always()
         shell: cmd
