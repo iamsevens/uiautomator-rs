@@ -91,13 +91,12 @@ function Wait-GitHubRunnerReady {
 
     while ((Get-Date) -lt $deadline) {
         $listeners = @(Assert-GitHubRunnerSingleListener -RunnerRoot $RunnerRoot)
-        $latestLog = Get-ChildItem -Path $diagRoot -Filter "Runner_*.log" -ErrorAction SilentlyContinue |
+        $runnerLogs = Get-ChildItem -Path $diagRoot -Filter "Runner_*.log" -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
+            Select-Object -First 3
 
-        if ($latestLog) {
-            $tail = Get-Content -Path $latestLog.FullName -Tail 120 -ErrorAction SilentlyContinue
-            if ($tail -match "Listening for Jobs") {
+        foreach ($runnerLog in $runnerLogs) {
+            if (Select-String -Path $runnerLog.FullName -Pattern "Listening for Jobs" -SimpleMatch -Quiet -ErrorAction SilentlyContinue) {
                 return $listeners
             }
         }
