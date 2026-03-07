@@ -43,6 +43,27 @@ $PSDefaultParameterValues["Add-Content:Encoding"] = "utf8"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
+function Resolve-CacheRoot {
+    $candidates = @(
+        $env:UIAUTOMATOR_CACHE_DIR,
+        $env:RUNNER_TEMP,
+        $env:TEMP,
+        [System.IO.Path]::GetTempPath()
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+
+    foreach ($candidate in $candidates) {
+        try {
+            New-Item -ItemType Directory -Force -Path $candidate | Out-Null
+            return (Resolve-Path -Path $candidate).Path
+        }
+        catch {
+            continue
+        }
+    }
+
+    throw "unable to resolve a writable cache root for regression artifacts"
+}
+
 $runStartedAt = Get-Date
 $runId = Get-Date -Format "yyyyMMdd-HHmmss"
 $safeSerialForPath = ($Serial -replace '[\\/:*?"<>|]', '_')
@@ -50,12 +71,21 @@ $runLogDir = Join-Path $repoRoot (Join-Path $LogRoot "$runId-$safeSerialForPath"
 $debugDumpDir = Join-Path $runLogDir "debug-dumps"
 New-Item -ItemType Directory -Force -Path $runLogDir | Out-Null
 
+$cacheRoot = Resolve-CacheRoot
+$cargoTargetDir = Join-Path $cacheRoot "uiautomator-rs\cargo-target"
+New-Item -ItemType Directory -Force -Path $cargoTargetDir | Out-Null
+$env:CARGO_TARGET_DIR = $cargoTargetDir
+
 $summary = New-Object System.Collections.Generic.List[object]
 $deviceProfile = [ordered]@{
     abi             = ""
     android_release = ""
     android_major   = 0
     sdk_int         = ""
+}
+$runEnvironment = [ordered]@{
+    cache_root       = $cacheRoot
+    cargo_target_dir = $cargoTargetDir
 }
 
 function Write-Step {
@@ -122,6 +152,7 @@ function Write-StructuredSummary {
         duration_seconds  = $durationSeconds
         log_dir           = $runLogDir
         device_profile    = $deviceProfile
+        run_environment   = $runEnvironment
         failure_message   = $FailureMessage
         total_steps       = $stepsArray.Count
         failed_steps      = @($stepsArray | Where-Object { $_.Status -eq "failed" }).Count
@@ -144,6 +175,8 @@ function Write-StructuredSummary {
     [void]$builder.AppendLine(('      <property name="run_id" value="{0}" />' -f (Escape-XmlText "$runId-$safeSerialForPath")))
     [void]$builder.AppendLine(('      <property name="run_status" value="{0}" />' -f (Escape-XmlText $RunStatus)))
     [void]$builder.AppendLine(('      <property name="log_dir" value="{0}" />' -f (Escape-XmlText $runLogDir)))
+    [void]$builder.AppendLine(('      <property name="cache_root" value="{0}" />' -f (Escape-XmlText $cacheRoot)))
+    [void]$builder.AppendLine(('      <property name="cargo_target_dir" value="{0}" />' -f (Escape-XmlText $cargoTargetDir)))
     [void]$builder.AppendLine('    </properties>')
 
     foreach ($item in $stepsArray) {
@@ -203,6 +236,7 @@ function Write-RunManifest {
         summary_json     = $StructuredSummary.JsonPath
         summary_junit    = $StructuredSummary.JunitPath
         device_profile   = $deviceProfile
+        run_environment  = $runEnvironment
         failure_message  = $FailureMessage
         generated_at     = (Get-Date).ToString("o")
     }
@@ -570,6 +604,10 @@ try {
         Add-Summary -Step "collect_debug_xml_pre" -Status "ok" -Detail "no debug xml files found in repo root"
     }
 
+    Write-Host "Using cache root: $cacheRoot"
+    Write-Host "Using CARGO_TARGET_DIR: $cargoTargetDir"
+    Add-Summary -Step "configure_cargo_target" -Status "ok" -Detail "CARGO_TARGET_DIR=$cargoTargetDir"
+
     Write-Step "Validate target device"
     $state = Invoke-Adb -CmdArgs @("get-state")
     if ($state.Output.Trim() -ne "device") {
@@ -778,6 +816,29 @@ try {
     }
     else {
         Add-Summary -Step "install_test_app" -Status "skipped" -Detail "SkipTestAppInstall"
+    }
+
+    Write-Step "Prewarm cargo test binaries"
+    $prewarmSteps = @(
+        @{
+            Name    = "prewarm_uiautomator_cli"
+            WorkDir = Join-Path $repoRoot "uiautomator-cli"
+            Cmd     = "cargo test --no-run"
+        },
+        @{
+            Name    = "prewarm_uiautomator"
+            WorkDir = Join-Path $repoRoot "uiautomator"
+            Cmd     = "cargo test --no-run"
+        }
+    )
+
+    foreach ($step in $prewarmSteps) {
+        $stepResult = Start-StepProcess `
+            -Name $step.Name `
+            -WorkingDirectory $step.WorkDir `
+            -Command $step.Cmd `
+            -TimeoutMinutes $StepTimeoutMinutes
+        Add-Summary -Step $step.Name -Status "ok" -Detail "cargo test --no-run completed" -DurationSeconds $stepResult.DurationSeconds -ExitCode $stepResult.ExitCode -StdoutPath $stepResult.Stdout -StderrPath $stepResult.Stderr
     }
 
     Write-Step "Run full test matrix with serial pinning"
