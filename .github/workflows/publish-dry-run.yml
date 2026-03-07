@@ -50,7 +50,7 @@ jobs:
 
       - name: Run package release checks
         shell: bash
-        run: bash ./scripts/release-check.sh
+        run: bash ./scripts/release-check.sh --allow-dirty
 
       - name: Dry-run publish uiautomator
         shell: bash

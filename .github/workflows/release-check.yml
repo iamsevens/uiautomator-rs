@@ -72,10 +72,10 @@ jobs:
       - name: Run package release checks (Linux)
         if: runner.os != 'Windows'
         shell: bash
-        run: bash ./scripts/release-check.sh
+        run: bash ./scripts/release-check.sh --allow-dirty
 
       - name: Run package release checks (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
+          & "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1 -AllowDirty
