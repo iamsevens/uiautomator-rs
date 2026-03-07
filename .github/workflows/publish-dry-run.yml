@@ -97,7 +97,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          status_code="$(curl -sS -o /dev/null -w "%{http_code}" https://crates.io/api/v1/crates/uiautomator)"
+          status_code="$(curl -sS --retry 3 --retry-delay 1 -A 'uiautomator-rs-ci/1.0' -o /dev/null -w "%{http_code}" https://crates.io/api/v1/crates/uiautomator)"
           if [ "$status_code" = "200" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "uiautomator exists on crates.io; will run CLI dry-run publish."
@@ -118,4 +118,4 @@ jobs:
         shell: bash
         run: |
           cd uiautomator-cli
-          cargo package --list
+          cargo package --allow-dirty --list
