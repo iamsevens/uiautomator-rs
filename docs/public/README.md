@@ -17,6 +17,7 @@ These documents consolidate internal spec streams into a publishable set:
 
 - `REQUIREMENTS.md`: release baseline requirements with IDs and acceptance criteria
 - `DESIGN.md`: architecture, module design, key decisions, and risk handling
+- `QUALITY_BASELINE.md`: stable quality conclusions from the validated review pass, including hardened behavior, explicit boundaries, and verification expectations
 - `API_DOCS.md`: public API guide, crate relationships, conventions, and example entry points
 - `MIGRATION.md`: migration status and future breaking-change guidance
 - `TASKS.md`: completion ledger, open items, release blocking status, priorities
@@ -29,9 +30,10 @@ Chinese mirrors are available as `*.zh-CN.md` in the same directory.
 
 1. Start with `REQUIREMENTS.md` for scope and acceptance.
 2. Read `DESIGN.md` for implementation and operational decisions.
-3. Use `API_DOCS.md` for public API structure and docs.rs entry points.
-4. Check `TASKS.md` for current progress and next priorities.
-5. Follow `TESTING_RELEASE.md` for release-grade verification.
+3. Use `QUALITY_BASELINE.md` for stable review-derived conclusions and closed issue boundaries.
+4. Use `API_DOCS.md` for public API structure and docs.rs entry points.
+5. Check `TASKS.md` for current progress and next priorities.
+6. Follow `TESTING_RELEASE.md` for release-grade verification.
 
 ## Status Labels
 

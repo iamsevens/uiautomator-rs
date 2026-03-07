@@ -17,6 +17,7 @@
 
 - `REQUIREMENTS.md`：完整需求基线（含需求编号、验收标准、发布门槛）
 - `DESIGN.md`：完整设计基线（含模块设计、关键流程、错误与可观测性）
+- `QUALITY_BASELINE.md`：审计后形成的稳定质量结论（只保留长期有效的修复结果、边界与验证基线）
 - `API_DOCS.md`：公开 API 指南（crate 关系、调用约定、docs.rs/示例入口）
 - `MIGRATION.md`：迁移状态与未来破坏性变更说明入口
 - `TASKS.md`：任务台账（含已完成、未完成、阻塞性、执行优先级）
@@ -27,9 +28,10 @@
 
 1. 先读 `REQUIREMENTS.md` 确认功能边界与验收口径。
 2. 再读 `DESIGN.md` 对应实现架构与关键决策。
-3. 用 `API_DOCS.md` 查看公开 API 结构、docs.rs 和示例入口。
-4. 用 `TASKS.md` 对账当前进度与后续计划。
-5. 按 `TESTING_RELEASE.md` 执行发布前验证。
+3. 用 `QUALITY_BASELINE.md` 快速了解审计后沉淀下来的稳定结论与已关闭问题边界。
+4. 用 `API_DOCS.md` 查看公开 API 结构、docs.rs 和示例入口。
+5. 用 `TASKS.md` 对账当前进度与后续计划。
+6. 按 `TESTING_RELEASE.md` 执行发布前验证。
 
 ## 状态约定
 
