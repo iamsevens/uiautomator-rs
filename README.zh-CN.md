@@ -1491,6 +1491,14 @@ Error: Timeout
 
 ## 仓库文档
 
+- 发布前门禁（推荐）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
+```
+
+该脚本会串行执行 `Release Check` 和 `Publish Dry Run`，任一失败即停止。
+
 - [PUBLISHING.md](PUBLISHING.md) - 发布流程
 - [SECURITY.md](SECURITY.md) - 安全漏洞上报流程
 - [SUPPORT.md](SUPPORT.md) - 使用支持与反馈渠道
