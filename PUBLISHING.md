@@ -25,42 +25,7 @@ Use this as the fixed release process for `uiautomator` and `uiautomator-cli`.
 
 2. Ensure internal records are archived under `internal/archive/`.
 
-3. Run package checks from repository root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
-```
-
-If intentionally running before commit:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1 -AllowDirty
-```
-
-```bash
-bash ./scripts/release-check.sh
-```
-
-If intentionally running before commit:
-
-```bash
-bash ./scripts/release-check.sh --allow-dirty
-```
-
-4. Inspect package content if needed:
-
-```bash
-cd uiautomator && cargo package --list
-cd ../uiautomator-cli && cargo package --list
-```
-
-5. Run docs/examples coverage report:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
-```
-
-6. Run the GitHub release gate workflows (recommended single entrypoint):
+3. Run the GitHub release gate workflows (single entrypoint):
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
@@ -68,7 +33,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release
 
 This script runs `Release Check` then `Publish Dry Run` in sequence and fails fast on the first non-success run.
 
-7. (Optional local verification) Run dry-run publish in order:
+4. Run docs/examples coverage report:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
+```
+
+5. Inspect package content if needed:
+
+```bash
+cd uiautomator && cargo package --list
+cd ../uiautomator-cli && cargo package --list
+```
+
+6. (Optional local debug) Run dry-run publish in order:
 
 ```bash
 cd uiautomator && cargo publish --dry-run

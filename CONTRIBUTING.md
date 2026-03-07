@@ -49,18 +49,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release
 
 This runs `Release Check` then `Publish Dry Run` in sequence and fails fast on the first non-success run.
 
-Optional local package-only checks:
-
-```bash
-bash ./scripts/release-check.sh
-```
-
-Windows:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
-```
-
 See [PUBLISHING.md](./PUBLISHING.md) for the full release process and publish order.
 
 ## Docs Coverage Check

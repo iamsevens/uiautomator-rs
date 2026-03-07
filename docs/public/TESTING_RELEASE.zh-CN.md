@@ -19,7 +19,7 @@
 - 仓库脚本：`scripts/run-validation-gate.ps1`、`scripts/device-full-test.ps1`、`scripts/api-coverage-report.ps1`
 - 文档覆盖脚本：`scripts/docs-coverage-report.ps1`
 - 单元覆盖率基线脚本：`scripts/unit-coverage-report.ps1`
-- 发布检查脚本：`scripts/release-check.ps1`、`scripts/release-check.sh`
+- 统一发布门禁脚本：`scripts/trigger-gh-release-gate.ps1`
 
 适用对象：
 
@@ -185,12 +185,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/unit-coverage-report
 
 ### 9.1 Hard Gates（必须满足）
 
-1. `release-check` 通过（包内容、元数据、资源完整性）。
+1. 统一发布门禁脚本通过（`Release Check` + `Publish Dry Run`）。
 2. 至少一台真机 + 一台模拟器完成“清空环境 -> 重建 -> 全量”通过。
 3. `summary.json` 与 `summary.junit.xml` 完整可追溯。
 4. API 覆盖对账产物已生成并审阅。
 5. docs/examples 覆盖产物已生成并审阅。
-6. `cargo publish --dry-run` 在两个 crate 内均通过。
+6. `Publish Dry Run` 确认两个 crate 的 `cargo publish --dry-run` 均通过。
 
 ### 9.2 Soft Gates（强烈建议）
 
@@ -204,8 +204,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/unit-coverage-report
 ### 10.1 命令清单（Windows）
 
 ```powershell
-# 1) 包内容检查
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-check.ps1
+# 1) 统一发布门禁入口（Release Check + Publish Dry Run）
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
 
 # 2) 设备全量回归（每台设备各跑一次）
 C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
@@ -219,18 +219,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report
 # 5) 可选性能基准（当缓存代码有变更时）
 cargo bench --bench device_info_cache -- --sample-size 10
 
-# 6) dry-run 发布检查（分别在两个 crate 目录）
-cargo publish --dry-run
+# 6) 可选本地 dry-run 调试（GitHub 门禁已覆盖）
+cd uiautomator && cargo publish --dry-run
+cd ../uiautomator-cli && cargo publish --dry-run
 ```
 
 ### 10.2 命令清单（Linux/macOS）
 
-```bash
-# 1) 包内容检查
-bash scripts/release-check.sh
-
-# 2) 其余流程与 Windows 同步（设备脚本可用 pwsh 执行）
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
 ```
+
+其余设备/覆盖率流程与 Windows 一致，使用 `pwsh` 执行对应脚本。
 
 ### 10.3 crates 发布顺序
 
@@ -262,7 +262,7 @@ bash scripts/release-check.sh
 - docs-coverage-summary.md: <path>
 
 ### Gate Check
-- release-check: pass/fail
+- release gate (Release Check + Publish Dry Run): pass/fail
 - full regression: pass/fail
 - coverage review: pass/fail
 - docs/examples coverage review: pass/fail

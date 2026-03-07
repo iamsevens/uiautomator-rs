@@ -396,12 +396,21 @@ adb logcat | grep atx-agent
 
 ### 发布流程
 
-1. **更新版本号**：修改 `Cargo.toml` 中的 `version`
-2. **运行所有测试**：`cargo test`
-3. **构建发布版本**：`cargo build --release`
-4. **创建 Git 标签**：`git tag v0.1.0`
-5. **推送标签**：`git push origin v0.1.0`
-6. **GitHub Actions 自动构建并发布**
+1. **更新版本号**：同步更新 `uiautomator` / `uiautomator-cli` 的 `version` 与依赖版本。  
+2. **统一发布门禁入口（推荐）**：在仓库根目录运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
+```
+
+3. **设备全量回归（按设备串行）**：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-validation-gate.ps1 -Mode full -Serial <serial>
+```
+
+4. **发布顺序**：先发布 `uiautomator`，待索引可见后再发布 `uiautomator-cli`。  
+5. **详细规范**：以仓库根目录 `PUBLISHING.md` 为准。
 
 ### 贡献指南
 

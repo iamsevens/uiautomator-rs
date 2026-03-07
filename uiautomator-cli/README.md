@@ -57,9 +57,11 @@ cargo test -- --ignored --nocapture --test-threads=1
 From repository root:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-check.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/device-full-test.ps1 -Serial <serial>
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
 ```
+
+The first command is the unified release gate entrypoint (`Release Check` + `Publish Dry Run`).
 
 ## Relationship to `uiautomator`
 

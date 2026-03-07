@@ -23,7 +23,7 @@ Sources:
 - `scripts/api-coverage-report.ps1`
 - `scripts/docs-coverage-report.ps1`
 - `scripts/unit-coverage-report.ps1`
-- `scripts/release-check.ps1`, `scripts/release-check.sh`
+- `scripts/trigger-gh-release-gate.ps1`
 - `scripts/trigger-gh-device-regression.ps1`
 
 Applies to:
@@ -189,12 +189,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/unit-coverage-report
 
 ### Hard Gates
 
-1. `release-check` passes.
+1. Unified release gate script passes (`Release Check` + `Publish Dry Run`).
 2. Clean rebuild + full regression passes on real device + emulator.
 3. `summary.json` and `summary.junit.xml` are present and valid.
 4. API coverage artifacts are generated and reviewed.
 5. Docs/examples coverage artifacts are generated and reviewed.
-6. `cargo publish --dry-run` passes for both crates.
+6. `Publish Dry Run` confirms `cargo publish --dry-run` passes for both crates.
 
 ### Soft Gates
 
@@ -208,13 +208,24 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/unit-coverage-report
 ### Commands (Windows)
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-check.ps1
+# 1) Unified release gate entrypoint (Release Check + Publish Dry Run)
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
+
+# 2) device full regression (run once per target device/emulator)
 C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
+
+# 3) API coverage accounting
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
+
+# 4) docs/examples coverage
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 100 -MinExamplesPercent 100
-# optional perf evidence when cache code changes
+
+# 5) optional perf evidence when cache code changes
 cargo bench --bench device_info_cache -- --sample-size 10
-cargo publish --dry-run
+
+# 6) optional local publish dry-run debug (gate already covers this in GitHub)
+cd uiautomator && cargo publish --dry-run
+cd ../uiautomator-cli && cargo publish --dry-run
 ```
 
 ### GitHub Actions (Manual Sequential Trigger)
@@ -231,10 +242,11 @@ Behavior:
 
 ### Commands (Linux/macOS)
 
-```bash
-bash scripts/release-check.sh
-# run pwsh device/coverage scripts or equivalent wrappers
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
 ```
+
+Then run device/coverage scripts via `pwsh` as needed (same as Windows sequence).
 
 ### crates.io Order
 
@@ -264,7 +276,7 @@ bash scripts/release-check.sh
 - docs-coverage-summary.md: <path>
 
 ### Gate Check
-- release-check: pass/fail
+- release gate (Release Check + Publish Dry Run): pass/fail
 - full regression: pass/fail
 - coverage review: pass/fail
 - docs/examples coverage review: pass/fail

@@ -23,42 +23,7 @@ Use this file as the fixed release process for `uiautomator` and `uiautomator-cl
    - `uiautomator-cli/Cargo.toml` -> `[package].version`
    - `uiautomator-cli/Cargo.toml` -> `dependencies.uiautomator.version`
 2. Ensure local internal records are in `internal/archive/`.
-3. Run package checks from repo root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
-```
-
-If you intentionally run checks before committing, use:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1 -AllowDirty
-```
-
-```bash
-bash ./scripts/release-check.sh
-```
-
-If you intentionally run checks before committing, use:
-
-```bash
-bash ./scripts/release-check.sh --allow-dirty
-```
-
-4. Inspect package content manually when needed:
-
-```bash
-cd uiautomator && cargo package --list
-cd ../uiautomator-cli && cargo package --list
-```
-
-5. 运行文档/示例覆盖率检查：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
-```
-
-6. 通过统一脚本串行执行 GitHub 发布门禁（推荐）：
+3. 通过统一脚本串行执行 GitHub 发布门禁（唯一入口）：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
@@ -66,7 +31,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release
 
 该脚本会按顺序执行 `Release Check` 和 `Publish Dry Run`，任一失败即立即返回失败。
 
-7. （可选，本地补充验证）按顺序执行 dry-run publish：
+4. 运行文档/示例覆盖率检查：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
+```
+
+5. 需要时可手动检查打包内容：
+
+```bash
+cd uiautomator && cargo package --list
+cd ../uiautomator-cli && cargo package --list
+```
+
+6.（可选，本地补充验证）按顺序执行 dry-run publish：
 
 ```bash
 cd uiautomator && cargo publish --dry-run
