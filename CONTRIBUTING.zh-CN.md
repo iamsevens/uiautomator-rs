@@ -35,9 +35,17 @@ cargo clippy
 cargo test --lib
 ```
 
-## 发布相关检查
+## 发布门禁检查
 
 仓库根目录执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
+```
+
+该脚本会串行执行 `Release Check` 和 `Publish Dry Run`，任一失败即停止。
+
+可选：仅做本地打包检查：
 
 ```bash
 bash ./scripts/release-check.sh
@@ -48,6 +56,8 @@ Windows:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release-check.ps1
 ```
+
+完整发布流程与发布顺序见 [PUBLISHING.md](./PUBLISHING.md)。
 
 ## 文档覆盖率检查
 
