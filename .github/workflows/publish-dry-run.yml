@@ -56,7 +56,7 @@ jobs:
         shell: bash
         run: |
           cd uiautomator
-          cargo publish --dry-run
+          cargo publish --dry-run --allow-dirty
 
       - name: Package uiautomator for size check
         shell: bash
@@ -111,7 +111,7 @@ jobs:
         shell: bash
         run: |
           cd uiautomator-cli
-          cargo publish --dry-run
+          cargo publish --dry-run --allow-dirty
 
       - name: Package list check uiautomator-cli (bootstrap mode)
         if: steps.uiautomator_crate.outputs.exists != 'true'
