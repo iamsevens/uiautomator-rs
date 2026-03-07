@@ -109,14 +109,17 @@ jobs:
 
     steps:
       - name: Prepare local workspace
-        shell: cmd
+        shell: powershell
         run: |
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%UIAUTOMATOR_SOURCE_ROOT%\scripts\prepare-local-workspace.ps1" -SourceRepoRoot "%UIAUTOMATOR_SOURCE_ROOT%" -DestinationRepoRoot "%GITHUB_WORKSPACE%" -CommitSha "${{ github.sha }}"
+          & "$env:UIAUTOMATOR_SOURCE_ROOT\scripts\prepare-local-workspace.ps1" `
+            -SourceRepoRoot "$env:UIAUTOMATOR_SOURCE_ROOT" `
+            -DestinationRepoRoot "$env:GITHUB_WORKSPACE" `
+            -CommitSha "${{ github.sha }}"
 
       - name: Run validation gate (full)
         id: run_nightly
         continue-on-error: true
-        shell: cmd
+        shell: powershell
         env:
           LDPLAYER_START_CMD: ${{ vars.LDPLAYER_START_CMD }}
           LDPLAYER_STOP_CMD: ${{ vars.LDPLAYER_STOP_CMD }}
@@ -124,18 +127,36 @@ jobs:
           MUMU_STOP_CMD: ${{ vars.MUMU_STOP_CMD }}
           MUMU_ADB_ENDPOINTS: ${{ vars.MUMU_ADB_ENDPOINTS }}
         run: |
-          set "MANIFEST_PATH=%RUNNER_TEMP%\nightly-device-full-gate-manifest-${{ matrix.name }}.json"
-          echo MANIFEST_PATH=%MANIFEST_PATH%>>"%GITHUB_ENV%"
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-validation-gate.ps1 -Mode full -Serial "${{ matrix.serial }}" -TargetName "${{ matrix.name }}" -StepTimeoutMinutes "${{ needs.prepare-targets.outputs.step_timeout_minutes }}" -WaitTimeoutSeconds 360 -OutputManifestPath "%MANIFEST_PATH%" -ExpectedAbi "${{ matrix.expected_abi }}" -ExpectedAndroidMajor "${{ matrix.expected_android_major }}" -ShutdownTargetOnExit -LdplayerStartCommand "${{ vars.LDPLAYER_START_CMD }}" -LdplayerStopCommand "${{ vars.LDPLAYER_STOP_CMD }}" -MumuStartCommand "${{ vars.MUMU_START_CMD }}" -MumuStopCommand "${{ vars.MUMU_STOP_CMD }}" -MumuConnectEndpoints "${{ vars.MUMU_ADB_ENDPOINTS }}"
+          $manifestPath = Join-Path $env:RUNNER_TEMP "nightly-device-full-gate-manifest-${{ matrix.name }}.json"
+          "MANIFEST_PATH=$manifestPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & ".\scripts\run-validation-gate.ps1" `
+            -Mode full `
+            -Serial "${{ matrix.serial }}" `
+            -TargetName "${{ matrix.name }}" `
+            -StepTimeoutMinutes "${{ needs.prepare-targets.outputs.step_timeout_minutes }}" `
+            -WaitTimeoutSeconds 360 `
+            -OutputManifestPath $manifestPath `
+            -ExpectedAbi "${{ matrix.expected_abi }}" `
+            -ExpectedAndroidMajor "${{ matrix.expected_android_major }}" `
+            -ShutdownTargetOnExit `
+            -LdplayerStartCommand "${{ vars.LDPLAYER_START_CMD }}" `
+            -LdplayerStopCommand "${{ vars.LDPLAYER_STOP_CMD }}" `
+            -MumuStartCommand "${{ vars.MUMU_START_CMD }}" `
+            -MumuStopCommand "${{ vars.MUMU_STOP_CMD }}" `
+            -MumuConnectEndpoints "${{ vars.MUMU_ADB_ENDPOINTS }}"
 
       - name: Parse structured summary
         if: always()
-        shell: cmd
+        shell: powershell
         run: |
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\export-manifest-env.ps1 -ManifestPath "%MANIFEST_PATH%" -Serial "${{ matrix.serial }}" -Context "target=${{ matrix.name }} serial=${{ matrix.serial }}" -AllowMissingManifest
+          & ".\scripts\export-manifest-env.ps1" `
+            -ManifestPath "$env:MANIFEST_PATH" `
+            -Serial "${{ matrix.serial }}" `
+            -Context "target=${{ matrix.name }} serial=${{ matrix.serial }}" `
+            -AllowMissingManifest
 
       - name: Enforce summary status
         if: always()
-        shell: cmd
+        shell: powershell
         run: |
-          C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\enforce-run-status.ps1 -Context "nightly target=${{ matrix.name }} serial=${{ matrix.serial }}"
+          & ".\scripts\enforce-run-status.ps1" -Context "nightly target=${{ matrix.name }} serial=${{ matrix.serial }}"
