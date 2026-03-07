@@ -46,15 +46,8 @@ cd uiautomator && cargo package --list
 cd ../uiautomator-cli && cargo package --list
 ```
 
-6. (Optional local debug) Run dry-run publish in order:
-
-```bash
-cd uiautomator && cargo publish --dry-run
-cd ../uiautomator-cli && cargo publish --dry-run
-```
-
 Note:
-`cargo publish --dry-run` may report ignored tests/examples not included in package; this is expected by design.
+`Publish Dry Run` may report ignored tests/examples not included in package; this is expected by design.
 
 ## Publish Order
 

@@ -44,15 +44,8 @@ cd uiautomator && cargo package --list
 cd ../uiautomator-cli && cargo package --list
 ```
 
-6.（可选，本地补充验证）按顺序执行 dry-run publish：
-
-```bash
-cd uiautomator && cargo publish --dry-run
-cd ../uiautomator-cli && cargo publish --dry-run
-```
-
 说明：
-- 由于 `tests/**` 与 `examples/**` 不进入发布包，`cargo publish --dry-run` 可能提示 “ignoring example/test ... not included in the published package”，这是预期行为。
+- 由于 `tests/**` 与 `examples/**` 不进入发布包，`Publish Dry Run` 可能提示 “ignoring example/test ... not included in the published package”，这是预期行为。
 
 ## Publish Order
 

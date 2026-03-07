@@ -33,6 +33,16 @@
 5. 用 `TASKS.md` 对账当前进度与后续计划。
 6. 按 `TESTING_RELEASE.md` 执行发布前验证。
 
+## 统一发布门禁入口
+
+在仓库根目录执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
+```
+
+该命令是唯一发布门禁入口（串行执行 `Release Check` + `Publish Dry Run`）。
+
 ## 状态约定
 
 - `已完成`：已实现并有验证证据

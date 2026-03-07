@@ -590,3 +590,8 @@ PR 提交后，维护者会进行 Code Review。请：
 ---
 
 感谢你的贡献！🎉
+> **Canonical release gate entrypoint (repository root)**  
+> `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main`  
+>  
+> This command is the single release gate entrypoint (`Release Check` + `Publish Dry Run`).  
+> If this document conflicts with root-level `CONTRIBUTING.md` / `PUBLISHING.md`, follow root docs.

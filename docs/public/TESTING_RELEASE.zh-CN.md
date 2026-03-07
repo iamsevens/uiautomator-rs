@@ -219,9 +219,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report
 # 5) 可选性能基准（当缓存代码有变更时）
 cargo bench --bench device_info_cache -- --sample-size 10
 
-# 6) 可选本地 dry-run 调试（GitHub 门禁已覆盖）
-cd uiautomator && cargo publish --dry-run
-cd ../uiautomator-cli && cargo publish --dry-run
 ```
 
 ### 10.2 命令清单（Linux/macOS）
@@ -231,6 +228,12 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps
 ```
 
 其余设备/覆盖率流程与 Windows 一致，使用 `pwsh` 执行对应脚本。
+
+### 10.2.1 GitHub 手动设备矩阵触发（仅补跑，不是发布门禁入口）
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-device-regression.ps1 -Serial <serial> -TargetName <name> -ExpectedAbi <abi> -ExpectedAndroidMajor <major>
+```
 
 ### 10.3 crates 发布顺序
 

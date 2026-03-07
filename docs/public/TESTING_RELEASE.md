@@ -223,12 +223,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report
 # 5) optional perf evidence when cache code changes
 cargo bench --bench device_info_cache -- --sample-size 10
 
-# 6) optional local publish dry-run debug (gate already covers this in GitHub)
-cd uiautomator && cargo publish --dry-run
-cd ../uiautomator-cli && cargo publish --dry-run
 ```
 
 ### GitHub Actions (Manual Sequential Trigger)
+
+This path is for dedicated device-matrix reruns only, not the release gate entrypoint.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-device-regression.ps1 -Serial <serial> -TargetName <name> -ExpectedAbi <abi> -ExpectedAndroidMajor <major>

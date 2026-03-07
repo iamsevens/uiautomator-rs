@@ -288,3 +288,8 @@ git push origin v0.2.1
 - 提交 GitHub Issue
 - 查看 `.github/workflows/README.md`
 - 查看 `.github/RELEASE_CHECKLIST.md`
+> **Canonical release gate entrypoint (repository root)**  
+> `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main`  
+>  
+> This command is the single release gate entrypoint (`Release Check` + `Publish Dry Run`).  
+> If this document conflicts with root-level `PUBLISHING.md`, follow `PUBLISHING.md`.

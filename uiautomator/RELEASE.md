@@ -365,3 +365,8 @@ MIT License
 **发布负责人**: [您的名字]
 
 **发布日期**: 2024-01-17
+> **Canonical release gate entrypoint (repository root)**  
+> `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main`  
+>  
+> This command is the single release gate entrypoint (`Release Check` + `Publish Dry Run`).  
+> If this document conflicts with root-level `PUBLISHING.md`, follow `PUBLISHING.md`.
