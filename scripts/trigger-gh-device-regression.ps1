@@ -5,6 +5,8 @@ param(
 
     [string]$Ref = "main",
 
+    [string]$GuiRunnerRoot = "D:\actions-runner-uiautomator-rs-gui",
+
     [string]$TargetName = "",
 
     [string]$ExpectedAbi = "",
@@ -22,6 +24,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+. (Join-Path $PSScriptRoot "github-runner-common.ps1")
 
 if ($PollIntervalSeconds -lt 5) {
     throw "PollIntervalSeconds must be >= 5"
@@ -266,6 +270,9 @@ try {
 catch {
     throw "gh auth is not ready. run: gh auth login"
 }
+
+Assert-GitHubRunnerSingleListener -RunnerRoot $GuiRunnerRoot | Out-Null
+Wait-GitHubRunnerReady -RunnerRoot $GuiRunnerRoot | Out-Null
 
 $Serial = Resolve-Serial
 

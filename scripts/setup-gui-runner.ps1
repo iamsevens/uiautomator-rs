@@ -52,6 +52,89 @@ function Expand-RunnerPackage {
     }
 }
 
+function Write-RunnerBootstrap {
+    $startRunnerPs1 = Join-Path $GuiRunnerRoot "start-runner.ps1"
+    $startRunnerCmd = Join-Path $GuiRunnerRoot "start-runner.cmd"
+
+    $psContent = @'
+param()
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$runnerRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$listenerPath = Join-Path $runnerRoot "bin\Runner.Listener.exe"
+$runCmd = Join-Path $runnerRoot "run.cmd"
+$envFile = Join-Path $runnerRoot ".env"
+
+function Get-NormalizedPath {
+    param([string]$Path)
+    return [System.IO.Path]::GetFullPath($Path).TrimEnd("\")
+}
+
+function Get-ListenerProcess {
+    param([string]$ExecutablePath)
+
+    $normalizedExecutablePath = Get-NormalizedPath -Path $ExecutablePath
+    Get-CimInstance Win32_Process |
+        Where-Object { $_.Name -eq "Runner.Listener.exe" -and $_.ExecutablePath } |
+        Where-Object { (Get-NormalizedPath -Path $_.ExecutablePath) -ieq $normalizedExecutablePath } |
+        Sort-Object CreationDate, ProcessId
+}
+
+function Import-EnvFile {
+    param([string]$Path)
+
+    if (-not (Test-Path $Path)) {
+        return
+    }
+
+    foreach ($line in Get-Content -Path $Path -Encoding utf8) {
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith("#")) {
+            continue
+        }
+
+        $separatorIndex = $trimmed.IndexOf("=")
+        if ($separatorIndex -lt 1) {
+            continue
+        }
+
+        $name = $trimmed.Substring(0, $separatorIndex).Trim()
+        $value = $trimmed.Substring($separatorIndex + 1)
+        if ([string]::IsNullOrWhiteSpace($name)) {
+            continue
+        }
+
+        Set-Item -Path ("Env:{0}" -f $name) -Value $value
+    }
+}
+
+$listeners = @(Get-ListenerProcess -ExecutablePath $listenerPath)
+if ($listeners.Count -gt 0) {
+    $pidList = ($listeners | ForEach-Object { [string]$_.ProcessId }) -join ", "
+    Write-Host "runner already active under $runnerRoot; refusing duplicate start (pid=$pidList)"
+    exit 0
+}
+
+Import-EnvFile -Path $envFile
+Set-Location $runnerRoot
+& $runCmd
+exit $LASTEXITCODE
+'@
+
+    $cmdContent = @'
+@echo off
+setlocal
+set "PS_EXE=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-runner.ps1" %*
+exit /b %ERRORLEVEL%
+'@
+
+    Set-Content -Path $startRunnerPs1 -Value $psContent -Encoding utf8
+    Set-Content -Path $startRunnerCmd -Value $cmdContent -Encoding ascii
+}
+
 function Invoke-Config {
     param([string[]]$Arguments)
 
@@ -70,7 +153,7 @@ function Invoke-Config {
 }
 
 function Register-Task {
-    $runCmd = Join-Path $GuiRunnerRoot "run.cmd"
+    $runCmd = Join-Path $GuiRunnerRoot "start-runner.cmd"
     $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$runCmd`""
     $trigger = New-ScheduledTaskTrigger -AtLogOn -User ([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 0) -MultipleInstances IgnoreNew
@@ -88,6 +171,7 @@ function Set-GitTransportDefaults {
 
 Invoke-Gh -Arguments @("auth", "status") | Out-Null
 Expand-RunnerPackage
+Write-RunnerBootstrap
 
 $runnerMarker = Join-Path $GuiRunnerRoot ".runner"
 if ((Test-Path $runnerMarker) -and $Reconfigure) {

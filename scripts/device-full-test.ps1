@@ -75,6 +75,10 @@ $cacheRoot = Resolve-CacheRoot
 $cargoTargetDir = Join-Path $cacheRoot "uiautomator-rs\cargo-target"
 New-Item -ItemType Directory -Force -Path $cargoTargetDir | Out-Null
 $env:CARGO_TARGET_DIR = $cargoTargetDir
+if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) {
+    # Keep MSVC linking deterministic on Windows self-hosted runners.
+    $env:CARGO_BUILD_JOBS = "1"
+}
 
 $summary = New-Object System.Collections.Generic.List[object]
 $deviceProfile = [ordered]@{
@@ -86,6 +90,7 @@ $deviceProfile = [ordered]@{
 $runEnvironment = [ordered]@{
     cache_root       = $cacheRoot
     cargo_target_dir = $cargoTargetDir
+    cargo_build_jobs = $env:CARGO_BUILD_JOBS
 }
 
 function Write-Step {
@@ -606,6 +611,7 @@ try {
 
     Write-Host "Using cache root: $cacheRoot"
     Write-Host "Using CARGO_TARGET_DIR: $cargoTargetDir"
+    Write-Host "Using CARGO_BUILD_JOBS: $($env:CARGO_BUILD_JOBS)"
     Add-Summary -Step "configure_cargo_target" -Status "ok" -Detail "CARGO_TARGET_DIR=$cargoTargetDir"
 
     Write-Step "Validate target device"

@@ -3,6 +3,8 @@ param(
 
     [string]$Ref = "main",
 
+    [string]$GuiRunnerRoot = "D:\actions-runner-uiautomator-rs-gui",
+
     [string]$TargetsJson = "",
 
     [int]$StepTimeoutMinutes = 45,
@@ -16,6 +18,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+. (Join-Path $PSScriptRoot "github-runner-common.ps1")
 
 if ($StepTimeoutMinutes -lt 1) {
     throw "StepTimeoutMinutes must be >= 1"
@@ -202,6 +206,8 @@ function Wait-RunCompletion {
 }
 
 Invoke-Gh -Arguments @("auth", "status") | Out-Null
+Assert-GitHubRunnerSingleListener -RunnerRoot $GuiRunnerRoot | Out-Null
+Wait-GitHubRunnerReady -RunnerRoot $GuiRunnerRoot | Out-Null
 $workflowId = Resolve-WorkflowId
 Ensure-NoActiveRun
 
