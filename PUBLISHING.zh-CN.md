@@ -58,7 +58,15 @@ cd ../uiautomator-cli && cargo package --list
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
 ```
 
-6. Run dry-run publish in order:
+6. 通过统一脚本串行执行 GitHub 发布门禁（推荐）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
+```
+
+该脚本会按顺序执行 `Release Check` 和 `Publish Dry Run`，任一失败即立即返回失败。
+
+7. （可选，本地补充验证）按顺序执行 dry-run publish：
 
 ```bash
 cd uiautomator && cargo publish --dry-run

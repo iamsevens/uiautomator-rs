@@ -60,7 +60,15 @@ cd ../uiautomator-cli && cargo package --list
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 99.0 -MinExamplesPercent 55.0
 ```
 
-6. Run dry-run publish in order:
+6. Run the GitHub release gate workflows (recommended single entrypoint):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
+```
+
+This script runs `Release Check` then `Publish Dry Run` in sequence and fails fast on the first non-success run.
+
+7. (Optional local verification) Run dry-run publish in order:
 
 ```bash
 cd uiautomator && cargo publish --dry-run
