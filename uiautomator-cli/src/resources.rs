@@ -93,7 +93,6 @@ impl EmbeddedResources {
     ///     Err(e) => eprintln!("资源文件完整性验证失败: {}", e),
     /// }
     /// ```
-    #[allow(dead_code)]
     pub fn verify_integrity(&self) -> Result<(), String> {
         // 辅助函数：验证单个资源文件的 MD5
         fn verify_md5(name: &str, data: &[u8], expected_md5: &str) -> Result<(), String> {
@@ -124,7 +123,6 @@ impl EmbeddedResources {
     }
 
     /// 获取资源文件的总大小（字节）
-    #[allow(dead_code)]
     /// # Examples
     ///
     /// ```no_run

@@ -77,6 +77,70 @@ pub enum Key {
 }
 
 impl Key {
+    const ALL_KEYS: &'static [Key] = &[
+        Key::Home,
+        Key::Back,
+        Key::Power,
+        Key::VolumeUp,
+        Key::VolumeDown,
+        Key::VolumeMute,
+        Key::Menu,
+        Key::Search,
+        Key::Enter,
+        Key::Delete,
+        Key::Recent,
+        Key::Camera,
+        Key::Up,
+        Key::Down,
+        Key::Left,
+        Key::Right,
+        Key::Center,
+        Key::Tab,
+        Key::Space,
+        Key::Escape,
+        Key::MediaPlayPause,
+        Key::MediaStop,
+        Key::MediaNext,
+        Key::MediaPrevious,
+        Key::MediaFastForward,
+        Key::MediaRewind,
+        Key::Call,
+        Key::EndCall,
+    ];
+
+    fn metadata(&self) -> (u32, &'static str) {
+        match self {
+            Key::Home => (3, "home"),
+            Key::Back => (4, "back"),
+            Key::Power => (26, "power"),
+            Key::VolumeUp => (24, "volume_up"),
+            Key::VolumeDown => (25, "volume_down"),
+            Key::VolumeMute => (164, "volume_mute"),
+            Key::Menu => (82, "menu"),
+            Key::Search => (84, "search"),
+            Key::Enter => (66, "enter"),
+            Key::Delete => (67, "delete"),
+            Key::Recent => (187, "recent"),
+            Key::Camera => (27, "camera"),
+            Key::Up => (19, "up"),
+            Key::Down => (20, "down"),
+            Key::Left => (21, "left"),
+            Key::Right => (22, "right"),
+            Key::Center => (23, "center"),
+            Key::Tab => (61, "tab"),
+            Key::Space => (62, "space"),
+            Key::Escape => (111, "escape"),
+            Key::MediaPlayPause => (85, "media_play_pause"),
+            Key::MediaStop => (86, "media_stop"),
+            Key::MediaNext => (87, "media_next"),
+            Key::MediaPrevious => (88, "media_previous"),
+            Key::MediaFastForward => (90, "media_fast_forward"),
+            Key::MediaRewind => (89, "media_rewind"),
+            Key::Call => (5, "call"),
+            Key::EndCall => (6, "end_call"),
+        }
+    }
+
     /// 将按键转换为 Android KeyEvent 键码
     ///
     /// # 返回
@@ -93,36 +157,7 @@ impl Key {
     /// assert_eq!(Key::Power.to_keycode(), 26);
     /// ```
     pub fn to_keycode(&self) -> u32 {
-        match self {
-            Key::Home => 3,
-            Key::Back => 4,
-            Key::Power => 26,
-            Key::VolumeUp => 24,
-            Key::VolumeDown => 25,
-            Key::VolumeMute => 164,
-            Key::Menu => 82,
-            Key::Search => 84,
-            Key::Enter => 66,
-            Key::Delete => 67,
-            Key::Recent => 187,
-            Key::Camera => 27,
-            Key::Up => 19,
-            Key::Down => 20,
-            Key::Left => 21,
-            Key::Right => 22,
-            Key::Center => 23,
-            Key::Tab => 61,
-            Key::Space => 62,
-            Key::Escape => 111,
-            Key::MediaPlayPause => 85,
-            Key::MediaStop => 86,
-            Key::MediaNext => 87,
-            Key::MediaPrevious => 88,
-            Key::MediaFastForward => 90,
-            Key::MediaRewind => 89,
-            Key::Call => 5,
-            Key::EndCall => 6,
-        }
+        self.metadata().0
     }
 
     /// 将按键转换为名称字符串
@@ -141,36 +176,7 @@ impl Key {
     /// assert_eq!(Key::MediaPlayPause.to_name(), "media_play_pause");
     /// ```
     pub fn to_name(&self) -> &'static str {
-        match self {
-            Key::Home => "home",
-            Key::Back => "back",
-            Key::Power => "power",
-            Key::VolumeUp => "volume_up",
-            Key::VolumeDown => "volume_down",
-            Key::VolumeMute => "volume_mute",
-            Key::Menu => "menu",
-            Key::Search => "search",
-            Key::Enter => "enter",
-            Key::Delete => "delete",
-            Key::Recent => "recent",
-            Key::Camera => "camera",
-            Key::Up => "up",
-            Key::Down => "down",
-            Key::Left => "left",
-            Key::Right => "right",
-            Key::Center => "center",
-            Key::Tab => "tab",
-            Key::Space => "space",
-            Key::Escape => "escape",
-            Key::MediaPlayPause => "media_play_pause",
-            Key::MediaStop => "media_stop",
-            Key::MediaNext => "media_next",
-            Key::MediaPrevious => "media_previous",
-            Key::MediaFastForward => "media_fast_forward",
-            Key::MediaRewind => "media_rewind",
-            Key::Call => "call",
-            Key::EndCall => "end_call",
-        }
+        self.metadata().1
     }
 
     /// 从名称字符串创建按键
@@ -194,38 +200,10 @@ impl Key {
     /// assert_eq!(Key::from_name("invalid"), None);
     /// ```
     pub fn from_name(name: &str) -> Option<Self> {
-        let name_lower = name.to_lowercase();
-        match name_lower.as_str() {
-            "home" => Some(Key::Home),
-            "back" => Some(Key::Back),
-            "power" => Some(Key::Power),
-            "volume_up" => Some(Key::VolumeUp),
-            "volume_down" => Some(Key::VolumeDown),
-            "volume_mute" => Some(Key::VolumeMute),
-            "menu" => Some(Key::Menu),
-            "search" => Some(Key::Search),
-            "enter" => Some(Key::Enter),
-            "delete" => Some(Key::Delete),
-            "recent" => Some(Key::Recent),
-            "camera" => Some(Key::Camera),
-            "up" => Some(Key::Up),
-            "down" => Some(Key::Down),
-            "left" => Some(Key::Left),
-            "right" => Some(Key::Right),
-            "center" => Some(Key::Center),
-            "tab" => Some(Key::Tab),
-            "space" => Some(Key::Space),
-            "escape" => Some(Key::Escape),
-            "media_play_pause" => Some(Key::MediaPlayPause),
-            "media_stop" => Some(Key::MediaStop),
-            "media_next" => Some(Key::MediaNext),
-            "media_previous" => Some(Key::MediaPrevious),
-            "media_fast_forward" => Some(Key::MediaFastForward),
-            "media_rewind" => Some(Key::MediaRewind),
-            "call" => Some(Key::Call),
-            "end_call" => Some(Key::EndCall),
-            _ => None,
-        }
+        Self::ALL_KEYS
+            .iter()
+            .copied()
+            .find(|key| key.to_name().eq_ignore_ascii_case(name))
     }
 }
 
@@ -268,41 +246,10 @@ mod tests {
     #[test]
     fn test_key_round_trip() {
         // 测试所有按键的名称转换往返
-        let keys = vec![
-            Key::Home,
-            Key::Back,
-            Key::Power,
-            Key::VolumeUp,
-            Key::VolumeDown,
-            Key::VolumeMute,
-            Key::Menu,
-            Key::Search,
-            Key::Enter,
-            Key::Delete,
-            Key::Recent,
-            Key::Camera,
-            Key::Up,
-            Key::Down,
-            Key::Left,
-            Key::Right,
-            Key::Center,
-            Key::Tab,
-            Key::Space,
-            Key::Escape,
-            Key::MediaPlayPause,
-            Key::MediaStop,
-            Key::MediaNext,
-            Key::MediaPrevious,
-            Key::MediaFastForward,
-            Key::MediaRewind,
-            Key::Call,
-            Key::EndCall,
-        ];
-
-        for key in keys {
+        for key in Key::ALL_KEYS {
             let name = key.to_name();
             let parsed = Key::from_name(name);
-            assert_eq!(parsed, Some(key), "Failed round trip for key: {:?}", key);
+            assert_eq!(parsed, Some(*key), "Failed round trip for key: {:?}", key);
         }
     }
 
@@ -310,39 +257,8 @@ mod tests {
     fn test_all_keys_have_unique_keycodes() {
         use std::collections::HashSet;
 
-        let keys = vec![
-            Key::Home,
-            Key::Back,
-            Key::Power,
-            Key::VolumeUp,
-            Key::VolumeDown,
-            Key::VolumeMute,
-            Key::Menu,
-            Key::Search,
-            Key::Enter,
-            Key::Delete,
-            Key::Recent,
-            Key::Camera,
-            Key::Up,
-            Key::Down,
-            Key::Left,
-            Key::Right,
-            Key::Center,
-            Key::Tab,
-            Key::Space,
-            Key::Escape,
-            Key::MediaPlayPause,
-            Key::MediaStop,
-            Key::MediaNext,
-            Key::MediaPrevious,
-            Key::MediaFastForward,
-            Key::MediaRewind,
-            Key::Call,
-            Key::EndCall,
-        ];
-
         let mut keycodes = HashSet::new();
-        for key in keys {
+        for key in Key::ALL_KEYS {
             let keycode = key.to_keycode();
             assert!(
                 keycodes.insert(keycode),

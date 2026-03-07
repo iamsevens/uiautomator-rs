@@ -2,8 +2,6 @@ package com.uiautomator.testapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -17,31 +15,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupButtons() {
-        findViewById(R.id.btn_basic_controls).setOnClickListener(v ->
-            startActivity(new Intent(this, BasicControlsActivity.class)));
+        bindNavigationButton(R.id.btn_basic_controls, BasicControlsActivity.class);
+        bindNavigationButton(R.id.btn_gestures, GesturesActivity.class);
+        bindNavigationButton(R.id.btn_input_forms, InputFormsActivity.class);
+        bindNavigationButton(R.id.btn_lists, ListsActivity.class);
+        bindNavigationButton(R.id.btn_dialogs, DialogsActivity.class);
+        bindNavigationButton(R.id.btn_navigation, NavigationActivity.class);
+        bindNavigationButton(R.id.btn_animations, AnimationsActivity.class);
+        bindNavigationButton(R.id.btn_stress, StressTestActivity.class);
+        bindNavigationButton(R.id.btn_concurrent, ConcurrentTestActivity.class);
+    }
 
-        findViewById(R.id.btn_gestures).setOnClickListener(v ->
-            startActivity(new Intent(this, GesturesActivity.class)));
-
-        findViewById(R.id.btn_input_forms).setOnClickListener(v ->
-            startActivity(new Intent(this, InputFormsActivity.class)));
-
-        findViewById(R.id.btn_lists).setOnClickListener(v ->
-            startActivity(new Intent(this, ListsActivity.class)));
-
-        findViewById(R.id.btn_dialogs).setOnClickListener(v ->
-            startActivity(new Intent(this, DialogsActivity.class)));
-
-        findViewById(R.id.btn_navigation).setOnClickListener(v ->
-            startActivity(new Intent(this, NavigationActivity.class)));
-
-        findViewById(R.id.btn_animations).setOnClickListener(v ->
-            startActivity(new Intent(this, AnimationsActivity.class)));
-
-        findViewById(R.id.btn_stress).setOnClickListener(v ->
-            startActivity(new Intent(this, StressTestActivity.class)));
-
-        findViewById(R.id.btn_concurrent).setOnClickListener(v ->
-            startActivity(new Intent(this, ConcurrentTestActivity.class)));
+    private void bindNavigationButton(int buttonId, Class<? extends AppCompatActivity> activityClass) {
+        findViewById(buttonId).setOnClickListener(v ->
+            startActivity(new Intent(this, activityClass)));
     }
 }

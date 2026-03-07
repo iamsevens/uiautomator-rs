@@ -488,6 +488,15 @@ pub async fn execute_version() -> Result<()> {
         "app-uiautomator-test.apk:".bold(),
         resources.app_uiautomator_test_apk_md5.yellow()
     );
+    println!(
+        "  {} {} bytes",
+        "总大小:".bold(),
+        resources.total_size().to_string().yellow()
+    );
+    match resources.verify_integrity() {
+        Ok(()) => println!("  {} {}", "完整性:".bold(), "ok".green()),
+        Err(error) => println!("  {} {}", "完整性:".bold(), error.red()),
+    }
     println!();
 
     // 显示提示信息
