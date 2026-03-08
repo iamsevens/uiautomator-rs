@@ -4,6 +4,15 @@
 
 This repository keeps internal planning files out of the public package surface.
 Use this as the fixed release process for `uiautomator` and `uiautomator-cli`.
+Treat this document as the single source of truth for releases.
+
+## Prerequisites
+
+1. Working tree is clean (`git status -sb` shows no changes).
+2. GitHub CLI is authenticated (`gh auth status`).
+3. crates.io credentials are available:
+   - `cargo login` done locally, or `CARGO_REGISTRY_TOKEN` set.
+4. If your network is flaky, plan to set `CARGO_HTTP_MULTIPLEXING=false` for publish retries.
 
 ## Rules
 
@@ -73,6 +82,13 @@ Note:
 4. Tag and release:
    - Create git tag `vX.Y.Z` and push.
    - Create GitHub Release after crates publish (so links are live).
+
+## Post-release Verification
+
+1. Confirm crates.io visibility:
+   - `cargo info uiautomator@X.Y.Z`
+   - `cargo info uiautomator-cli@X.Y.Z`
+2. Confirm docs.rs pages respond for the new version.
 
 ## Known Pitfalls and Fixes
 

@@ -4,6 +4,15 @@
 
 This repository keeps `.kiro/` in git on purpose, but crate packages must stay clean.
 Use this file as the fixed release process for `uiautomator` and `uiautomator-cli`.
+本文件是发布的唯一入口和权威流程说明。
+
+## 前置条件
+
+1. 工作区必须干净（`git status -sb` 无未提交修改）。
+2. GitHub CLI 已登录（`gh auth status` 正常）。
+3. crates.io 凭据已就绪：
+   - 已执行 `cargo login`，或设置 `CARGO_REGISTRY_TOKEN`。
+4. 若网络不稳定，准备在发布时使用 `CARGO_HTTP_MULTIPLEXING=false` 重试。
 
 ## Rules
 
@@ -70,6 +79,13 @@ cd ../uiautomator-cli && cargo package --list
 4. 打 tag 与 Release：
    - 打 `vX.Y.Z` 标签并推送。
    - crates 发布完成后再创建 GitHub Release（确保链接可用）。
+
+## 发布后验证
+
+1. 确认 crates.io 可见：
+   - `cargo info uiautomator@X.Y.Z`
+   - `cargo info uiautomator-cli@X.Y.Z`
+2. 确认 docs.rs 新版本页面可访问。
 
 ## 已踩坑汇总与规避方法
 
