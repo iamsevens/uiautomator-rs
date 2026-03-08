@@ -21,7 +21,7 @@
 
 ```toml
 [dependencies]
-uiautomator = "1.0.1"
+uiautomator = "1.0.2"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -29,7 +29,7 @@ tokio = { version = "1", features = ["full"] }
 
 ```toml
 [dependencies]
-uiautomator = { version = "1.0.1", features = ["atx-agent-install"] }
+uiautomator = { version = "1.0.2", features = ["atx-agent-install"] }
 ```
 
 说明：

@@ -70,7 +70,7 @@ Add the library to your project:
 
 ```toml
 [dependencies]
-uiautomator = "1.0.1"
+uiautomator = "1.0.2"
 tokio = { version = "1", features = ["full"] }
 ```
 
