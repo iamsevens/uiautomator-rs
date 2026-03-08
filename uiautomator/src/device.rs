@@ -217,7 +217,7 @@ impl Device {
         }
 
         Err(Error::InvalidArgument(format!(
-            "鏃犳晥鐨勫寘鍚? {}",
+            "无效的包名: {}",
             package
         )))
     }
@@ -228,7 +228,7 @@ impl Device {
         }
 
         Err(Error::InvalidArgument(format!(
-            "鏃犳晥鐨?Activity 鍚? {}",
+            "无效的 Activity 名称: {}",
             activity
         )))
     }
