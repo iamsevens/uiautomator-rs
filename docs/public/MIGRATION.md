@@ -6,7 +6,7 @@
 
 There is currently no published breaking migration that requires user action.
 
-The public `0.1.x` line is being kept backward compatible where practical, and recent additions such as:
+The public `1.x` line is being kept backward compatible where practical, and recent additions such as:
 
 - `Coord`
 - `Device::click_coord`

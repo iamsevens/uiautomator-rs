@@ -34,7 +34,7 @@ cd uiautomator-cli
 ```toml
 [package]
 name = "uiautomator-cli"
-version = "0.2.0"  # 从 0.1.0 更新到 0.2.0
+version = "1.0.1"  # 从 1.0.0 更新到 1.0.1
 ```
 
 ### 3. 更新依赖锁文件
@@ -47,7 +47,7 @@ cargo update
 
 ```bash
 git add Cargo.toml Cargo.lock
-git commit -m "chore: bump version to 0.2.0"
+git commit -m "chore: bump version to 1.0.1"
 git push origin main
 ```
 
@@ -55,10 +55,10 @@ git push origin main
 
 ```bash
 # 创建标签（注意版本号前加 v）
-git tag v0.2.0
+git tag v1.0.1
 
 # 推送标签到远程（这将触发 Release 工作流）
-git push origin v0.2.0
+git push origin v1.0.1
 ```
 
 ### 6. 监控构建
@@ -84,10 +84,10 @@ git push origin v0.2.0
   - 例如：`1.0.0` -> `2.0.0`
   
 - **次版本号（Minor）**: 向后兼容的功能新增
-  - 例如：`0.1.0` -> `0.2.0`
+  - 例如：`1.0.0` -> `1.1.0`
   
 - **修订号（Patch）**: 向后兼容的问题修复
-  - 例如：`0.2.0` -> `0.2.1`
+  - 例如：`1.0.0` -> `1.0.1`
 
 ### GitHub Actions 工作流
 
