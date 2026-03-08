@@ -159,14 +159,8 @@ Chinese mirrors are available as `*.zh-CN.md` files in the same directory.
 
 ## Release
 
-Use the unified release gate script before any crates.io publish attempt:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-```
-
-It runs `Release Check` then `Publish Dry Run` in sequence and fails fast on the first non-success run.  
-See [PUBLISHING.md](./PUBLISHING.md) for the full fixed release process.
+All release checks and publish steps are defined in a single place:
+`PUBLISHING.md`. Use that document as the only release entrypoint.
 
 ## Support and Policies
 

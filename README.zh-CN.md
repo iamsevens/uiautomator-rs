@@ -156,15 +156,7 @@ scripts\run-gh-device-regression.cmd -Serial <serial> -TargetName <name> -Expect
 
 ## 发布
 
-在任何 crates.io 发布前，统一使用如下门禁脚本：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-```
-
-该脚本会按顺序执行 `Release Check` 和 `Publish Dry Run`，任一步失败都会立即停止。
-
-完整流程请查看 [PUBLISHING.zh-CN.md](./PUBLISHING.zh-CN.md)。
+发布前检查与发布步骤只以 `PUBLISHING.zh-CN.md` 为唯一入口，其他文档不再重复流程。
 
 ## 支持与规范
 

@@ -2,6 +2,9 @@
 
 [English](./TESTING_RELEASE.md) | [简体中文](./TESTING_RELEASE.zh-CN.md)
 
+Release steps are defined in a single place: `PUBLISHING.md`.
+This document focuses on test scope and evidence, not the publish workflow.
+
 ## 1. Purpose
 
 Defines release-grade validation and evidence standards.
