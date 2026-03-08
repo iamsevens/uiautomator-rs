@@ -55,6 +55,36 @@ Note:
 2. Wait until crates.io index resolves the new version.
 3. Publish `uiautomator-cli`.
 
+## Hardened Release Flow (Do Not Skip)
+
+1. Update versions and docs:
+   - Bump `uiautomator` + `uiautomator-cli` versions and dependency version.
+   - Update all public README install snippets to the new version.
+   - Add the new version entry to both `CHANGELOG.md` files.
+   - Commit and push before running any release gate.
+2. Run pre-release checks:
+   - `docs-coverage-report.ps1` (must be 99%+ docs and 55%+ examples).
+   - `trigger-gh-release-gate.ps1` (Release Check + Publish Dry Run).
+3. Publish crates in order:
+   - Publish `uiautomator` first.
+   - Confirm the version is visible in the crates.io index:
+     - `cargo info uiautomator@X.Y.Z`
+   - Publish `uiautomator-cli` only after the above succeeds.
+4. Tag and release:
+   - Create git tag `vX.Y.Z` and push.
+   - Create GitHub Release after crates publish (so links are live).
+
+## Known Pitfalls and Fixes
+
+- **CLI dry-run fails** with `failed to select a version for uiautomator`:  
+  `uiautomator` is not yet visible in crates.io index. Publish core first and wait for index propagation.
+- **Crates publish fails with HTTP/2 stream errors**:  
+  Retry with `CARGO_HTTP_MULTIPLEXING=false` in the environment.
+- **PowerShell command chaining**:  
+  Use separate commands instead of `&&` in Windows PowerShell.
+- **Docs-only changes still require version bump**:  
+  crates.io/docs.rs do not allow overwriting an existing version.
+
 ## When Adding New Files
 
 1. `tests/**` and `examples/**` are excluded by default.

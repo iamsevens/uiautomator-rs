@@ -53,6 +53,35 @@ cd ../uiautomator-cli && cargo package --list
 2. Wait until crates.io index resolves the new version.
 3. Publish `uiautomator-cli`.
 
+## 固化发布流程（务必严格执行）
+
+1. 版本与文档同步：
+   - 同时升级 `uiautomator` 与 `uiautomator-cli` 版本号，并同步依赖版本。
+   - 更新所有公开 README 的安装示例版本号。
+   - 两个 `CHANGELOG.md` 都要补齐新版本条目。
+   - 先提交并推送，再跑门禁。
+2. 发布前检查：
+   - 执行 `docs-coverage-report.ps1`（文档 ≥99%，示例 ≥55%）。
+   - 执行 `trigger-gh-release-gate.ps1`（Release Check + Publish Dry Run）。
+3. 按顺序发布：
+   - 先发布 `uiautomator`。
+   - 用 `cargo info uiautomator@X.Y.Z` 确认 crates.io 索引可见。
+   - 确认后再发布 `uiautomator-cli`。
+4. 打 tag 与 Release：
+   - 打 `vX.Y.Z` 标签并推送。
+   - crates 发布完成后再创建 GitHub Release（确保链接可用）。
+
+## 已踩坑汇总与规避方法
+
+- **CLI dry-run 报错**：`failed to select a version for uiautomator`  
+  原因是 `uiautomator` 版本尚未出现在 crates.io 索引。必须先发布核心库并等待索引刷新。
+- **crates 发布报 HTTP/2 stream error**  
+  使用 `CARGO_HTTP_MULTIPLEXING=false` 重试。
+- **PowerShell 不支持 `&&`**  
+  Windows 下用两条命令分开执行。
+- **仅文档改动仍需升版**  
+  crates.io/docs.rs 不允许覆盖同版本内容。
+
 ## When You Add New Files
 
 1. `tests/**` 与 `examples/**` 默认不进入发布包；如果要发布这些内容，需要显式修改对应 crate 的 `include`。
