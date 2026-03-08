@@ -26,7 +26,6 @@ Sources:
 - `scripts/api-coverage-report.ps1`
 - `scripts/docs-coverage-report.ps1`
 - `scripts/unit-coverage-report.ps1`
-- `scripts/trigger-gh-release-gate.ps1`
 - `scripts/trigger-gh-device-regression.ps1`
 
 Applies to:
@@ -188,75 +187,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/unit-coverage-report
 - Use it to identify weak modules before adding more tests.
 - Do not treat a single global percentage as the only release-quality signal for device-bound code.
 
-## 9. Release Gates
+## 9. Release Evidence Template
 
-### Hard Gates
-
-1. Unified release gate script passes (`Release Check` + `Publish Dry Run`).
-2. Clean rebuild + full regression passes on real device + emulator.
-3. `summary.json` and `summary.junit.xml` are present and valid.
-4. API coverage artifacts are generated and reviewed.
-5. Docs/examples coverage artifacts are generated and reviewed.
-6. `Publish Dry Run` confirms `cargo publish --dry-run` passes for both crates.
-
-### Soft Gates
-
-1. Keep Task 23 matrix expansion maintained (baseline completed).
-2. Keep Task 24 post-install smoke path maintained (baseline completed).
-3. Keep Task 25 nightly guardrail healthy (baseline completed).
-4. Re-run optional perf benchmark when cache-related code changes: `cargo bench --bench device_info_cache -- --sample-size 10`.
-
-## 10. Release Execution Order
-
-### Commands (Windows)
-
-```powershell
-# 1) Unified release gate entrypoint (Release Check + Publish Dry Run)
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-
-# 2) device full regression (run once per target device/emulator)
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
-
-# 3) API coverage accounting
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/api-coverage-report.ps1
-
-# 4) docs/examples coverage
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/docs-coverage-report.ps1 -FailOnThreshold -MinDocsPercent 100 -MinExamplesPercent 100
-
-# 5) optional perf evidence when cache code changes
-cargo bench --bench device_info_cache -- --sample-size 10
-
-```
-
-### GitHub Actions (Manual Sequential Trigger)
-
-This path is for dedicated device-matrix reruns only, not the release gate entrypoint.
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-device-regression.ps1 -Serial <serial> -TargetName <name> -ExpectedAbi <abi> -ExpectedAndroidMajor <major>
-```
-
-Behavior:
-
-1. Dispatch `Install Smoke` and wait for `success`.
-2. Dispatch `Device Regression Matrix` and wait for `success`.
-3. Fail fast on timeout or non-success conclusion with direct run URL.
-
-### Commands (Linux/macOS)
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-```
-
-Then run device/coverage scripts via `pwsh` as needed (same as Windows sequence).
-
-### crates.io Order
-
-1. Publish `uiautomator`
-2. Wait for index visibility
-3. Publish `uiautomator-cli`
-
-## 11. Release Evidence Template
+Release gates and publish steps are defined in `PUBLISHING.md`.
+Record the outcome in the template below.
 
 ```markdown
 ## Release Evidence - <version>
@@ -278,12 +212,10 @@ Then run device/coverage scripts via `pwsh` as needed (same as Windows sequence)
 - docs-coverage-summary.md: <path>
 
 ### Gate Check
-- release gate (Release Check + Publish Dry Run): pass/fail
+- release gate run link (see `PUBLISHING.md`): <url>
 - full regression: pass/fail
 - coverage review: pass/fail
 - docs/examples coverage review: pass/fail
-- cargo publish --dry-run (uiautomator): pass/fail
-- cargo publish --dry-run (uiautomator-cli): pass/fail
 
 ### Exceptions
 - <none / details>

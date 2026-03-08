@@ -37,15 +37,8 @@ cargo test --lib
 
 ## 发布门禁检查
 
-仓库根目录执行：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-```
-
-该脚本会串行执行 `Release Check` 和 `Publish Dry Run`，任一失败即停止。
-
-完整发布流程与发布顺序见 [PUBLISHING.md](./PUBLISHING.md)。
+发布流程与门禁以 [PUBLISHING.md](./PUBLISHING.md) 为唯一入口。
+本指南不再重复发布命令。
 
 ## 文档覆盖率检查
 

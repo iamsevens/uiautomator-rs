@@ -209,7 +209,8 @@ Docs/examples coverage accounting:
 
 - `build.rs` injects asset checksum metadata during compile.
 - Missing required assets fail early.
-- crates.io release order: `uiautomator` then `uiautomator-cli`.
+- Release engineering details are centralized in repository root `PUBLISHING.md`.
+- Dependency note: `uiautomator-cli` depends on `uiautomator`.
 
 ## 13. Phase2 Design Outcome
 

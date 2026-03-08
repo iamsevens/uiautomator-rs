@@ -147,7 +147,7 @@
 2. 多设备全量回归（含 ignored）已可执行并有日志。
 3. API 覆盖与结构化摘要可生成。
 4. docs/examples 覆盖与结构化摘要可生成。
-5. 包内容与发布顺序已有流程约束。
+5. 包内容与发布顺序以 `PUBLISHING.zh-CN.md` 为准。
 
 结论：当前可发布；当前公开台账内没有剩余未完成项。
 
@@ -169,9 +169,12 @@
 
 - 需求基线：`docs/public/REQUIREMENTS.md`
 - 设计基线：`docs/public/DESIGN.md`
-- 测试与发布：`docs/public/TESTING_RELEASE.md`
+- 测试与发布前验证：`docs/public/TESTING_RELEASE.md`
+- 发布流程：仓库根目录 `PUBLISHING.zh-CN.md`
 
 保持原则：任务状态变更时，三份文档必须同步更新。
+
+发布流程仅在 `PUBLISHING.zh-CN.md` 维护，避免重复入口。
 
 ## 9. 维护规则
 

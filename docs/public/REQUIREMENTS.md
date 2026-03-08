@@ -206,6 +206,8 @@ A release-ready state requires all of the following:
 2. Scripted `clean -> rebuild -> full regression` passes.
 3. At least emulator + real-device evidence is available.
 4. Docs/examples coverage evidence is generated and reviewed.
-5. Package checks and publish order are valid (`uiautomator` then `uiautomator-cli`).
+5. Package checks and publish order follow `PUBLISHING.md` (core first, then CLI).
 
 Current tracked Phase2 enhancements are complete; future enhancements can be added as new task streams in `TASKS.md`.
+
+Release workflow details are intentionally centralized in repository root `PUBLISHING.md`.

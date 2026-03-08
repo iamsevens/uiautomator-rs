@@ -318,5 +318,4 @@ fi
 - [README](../README.md) - 项目主文档
 - [FAQ](../FAQ.md) - 常见问题解答
 > These helper scripts are for local/manual checks only.  
-> For release gating, use the canonical repository-root entrypoint:  
-> `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main`
+> Release workflow and gates are centralized in repository root `PUBLISHING.md`.

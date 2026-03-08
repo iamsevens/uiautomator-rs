@@ -499,65 +499,8 @@ PR 提交后，维护者会进行 Code Review。请：
 
 ## 发布流程
 
-### 版本号规范
-
-遵循 [Semantic Versioning](https://semver.org/)：
-
-- `MAJOR.MINOR.PATCH`
-- `MAJOR`: 不兼容的 API 更改
-- `MINOR`: 向后兼容的新功能
-- `PATCH`: 向后兼容的 bug 修复
-
-### 发布步骤
-
-1. **更新版本号**
-
-   ```toml
-   # Cargo.toml
-   [package]
-   version = "0.2.0"
-   ```
-
-2. **更新 CHANGELOG**
-
-   ```markdown
-   # CHANGELOG.md
-   
-   ## [0.2.0] - 2024-01-18
-   
-   ### Added
-   - 新功能 A
-   - 新功能 B
-   
-   ### Fixed
-   - 修复 bug X
-   ```
-
-3. **运行所有测试**
-
-   ```bash
-   cargo test --all
-   ```
-
-4. **构建发布版本**
-
-   ```bash
-   cargo build --release
-   ```
-
-5. **创建 Git 标签**
-
-   ```bash
-   git tag -a v0.2.0 -m "Release version 0.2.0"
-   git push origin v0.2.0
-   ```
-
-6. **GitHub Actions 自动发布**
-
-   推送标签后，GitHub Actions 会自动：
-   - 构建多平台二进制文件
-   - 创建 GitHub Release
-   - 上传构建产物
+发布流程与门禁统一维护在仓库根目录 `PUBLISHING.md` / `PUBLISHING.zh-CN.md`。
+本文件不再重复发布步骤。
 
 ## 获取帮助
 
@@ -590,8 +533,3 @@ PR 提交后，维护者会进行 Code Review。请：
 ---
 
 感谢你的贡献！🎉
-> **Canonical release gate entrypoint (repository root)**  
-> `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main`  
->  
-> This command is the single release gate entrypoint (`Release Check` + `Publish Dry Run`).  
-> If this document conflicts with root-level `CONTRIBUTING.md` / `PUBLISHING.md`, follow root docs.

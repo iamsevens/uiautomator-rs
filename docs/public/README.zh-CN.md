@@ -21,7 +21,7 @@
 - `API_DOCS.md`：公开 API 指南（crate 关系、调用约定、docs.rs/示例入口）
 - `MIGRATION.md`：迁移状态与未来破坏性变更说明入口
 - `TASKS.md`：任务台账（含已完成、未完成、阻塞性、执行优先级）
-- `TESTING_RELEASE.md`：测试与发布流程（脚本化回归、结构化摘要、发布顺序）
+- `TESTING_RELEASE.md`：测试与发布前验证基线（发布流程以 `PUBLISHING.zh-CN.md` 为准）
 - `RELEASE_NOTES.md`：发布说明（含关键修复点与可追溯验证证据）
 
 ## 使用方式
@@ -32,16 +32,7 @@
 4. 用 `API_DOCS.md` 查看公开 API 结构、docs.rs 和示例入口。
 5. 用 `TASKS.md` 对账当前进度与后续计划。
 6. 按 `TESTING_RELEASE.md` 执行发布前验证。
-
-## 统一发布门禁入口
-
-在仓库根目录执行：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-```
-
-该命令是唯一发布门禁入口（串行执行 `Release Check` + `Publish Dry Run`）。
+7. 发布流程请以仓库根目录的 `PUBLISHING.zh-CN.md` 为准。
 
 ## 状态约定
 

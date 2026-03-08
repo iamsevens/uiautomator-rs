@@ -63,14 +63,8 @@ cargo test -- --ignored --nocapture --test-threads=1
 
 ## 发布与验证
 
-在仓库根目录执行：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
-```
-
-第一条命令是统一发布门禁入口，会串行执行 `Release Check` 和 `Publish Dry Run`。
+发布流程与门禁以仓库根目录 `PUBLISHING.zh-CN.md` 为准。
+发布前验证基线与证据模板见 `../docs/public/TESTING_RELEASE.md`。
 
 ## 与 `uiautomator` 的关系
 

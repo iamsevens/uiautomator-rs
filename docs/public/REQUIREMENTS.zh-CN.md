@@ -217,7 +217,9 @@
 2. “清空环境 -> 重建 -> 全量”脚本化回归通过。
 3. 至少覆盖真机 + 模拟器组合验证。
 4. docs/examples 覆盖证据已生成并审阅。
-5. 发布包检查通过，发布顺序为 `uiautomator` 后 `uiautomator-cli`。
+5. 发布包检查通过，发布顺序以 `PUBLISHING.zh-CN.md` 为准（先 `uiautomator` 后 `uiautomator-cli`）。
 
 当前已纳管的 Phase2 增强项已完成；后续若新增增强需求，应作为新的任务流继续进入 `TASKS.md`。
+
+发布流程细节统一维护在仓库根目录 `PUBLISHING.zh-CN.md`。
 

@@ -29,7 +29,6 @@
 - `scripts/api-coverage-report.ps1`
 - `scripts/docs-coverage-report.ps1`
 - `scripts/unit-coverage-report.ps1`
-- `scripts/trigger-gh-release-gate.ps1`
 - `scripts/trigger-gh-device-regression.ps1`
 
 ## 3. 测试分层
@@ -54,7 +53,7 @@
 
 - 记录设备型号、ABI、Android 版本
 - 保存 `summary.json` / `summary.junit.xml`
-- 记录 release gate 运行链接
+- 记录发布门禁运行链接（参见 `PUBLISHING.zh-CN.md`）
 
 ## 6. 归档建议
 
@@ -66,7 +65,7 @@
 ```
 ## Release Evidence - <version>
 
-- release gate (Release Check + Publish Dry Run): pass/fail
+- 发布门禁运行链接（参见 `PUBLISHING.zh-CN.md`）：<url>
 - docs/examples coverage: pass/fail
 - device regression: pass/fail
 - Release: yes/no

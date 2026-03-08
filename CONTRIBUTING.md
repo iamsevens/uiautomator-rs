@@ -41,15 +41,8 @@ cargo test --lib
 
 ## Release Gate Check
 
-From repository root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-```
-
-This runs `Release Check` then `Publish Dry Run` in sequence and fails fast on the first non-success run.
-
-See [PUBLISHING.md](./PUBLISHING.md) for the full release process and publish order.
+Release workflow and gates are centralized in [PUBLISHING.md](./PUBLISHING.md).
+This guide intentionally avoids duplicating release commands.
 
 ## Docs Coverage Check
 

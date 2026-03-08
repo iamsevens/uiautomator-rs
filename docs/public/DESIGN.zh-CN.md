@@ -270,12 +270,10 @@ Selector 后置校验边界：
 - `build.rs` 计算资源校验信息并注入构建时常量
 - 缺失资源在构建阶段即失败
 
-### 11.2 包发布关系
+### 11.2 发布说明
 
-- 先发布库 `uiautomator`
-- 再发布 `uiautomator-cli`
-
-原因：CLI 在 crates 关系上依赖库版本。
+- 发布流程以仓库根目录的 `PUBLISHING.zh-CN.md` 为准。
+- 依赖关系：`uiautomator-cli` 依赖 `uiautomator`。
 
 ## 12. Phase2 设计结果
 

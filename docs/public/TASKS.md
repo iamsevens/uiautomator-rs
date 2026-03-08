@@ -131,7 +131,7 @@ No explicit open `Release-Blocking` item remains.
 3. Structured test artifacts are available.
 4. API coverage artifacts are available.
 5. Docs/examples coverage artifacts are available.
-6. Publish order and package checks are defined.
+6. Publish order and package checks follow `PUBLISHING.md`.
 
 Conclusion: release baseline is met; no tracked open item remains in the current ledger.
 
@@ -158,3 +158,5 @@ When status changes, update all three baselines together:
 - `TESTING_RELEASE.md`
 
 This avoids drift between implementation status and public documentation.
+
+Release workflow details live only in repository root `PUBLISHING.md`.

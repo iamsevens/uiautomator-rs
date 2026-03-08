@@ -21,7 +21,7 @@ These documents consolidate internal spec streams into a publishable set:
 - `API_DOCS.md`: public API guide, crate relationships, conventions, and example entry points
 - `MIGRATION.md`: migration status and future breaking-change guidance
 - `TASKS.md`: completion ledger, open items, release blocking status, priorities
-- `TESTING_RELEASE.md`: test matrix, failure taxonomy, release gates, evidence templates
+- `TESTING_RELEASE.md`: test matrix, failure taxonomy, evidence templates (release steps live in `PUBLISHING.md`)
 - `RELEASE_NOTES.md`: curated release notes with evidence-backed CI/device regression outcomes
 
 Chinese mirrors are available as `*.zh-CN.md` in the same directory.
@@ -34,16 +34,7 @@ Chinese mirrors are available as `*.zh-CN.md` in the same directory.
 4. Use `API_DOCS.md` for public API structure and docs.rs entry points.
 5. Check `TASKS.md` for current progress and next priorities.
 6. Follow `TESTING_RELEASE.md` for release-grade verification.
-
-## Unified Release Gate Entrypoint
-
-Run from repository root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-```
-
-This is the canonical release gate entrypoint (`Release Check` + `Publish Dry Run`).
+7. Publishing is defined in repository root `PUBLISHING.md`.
 
 ## Status Labels
 

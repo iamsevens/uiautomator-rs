@@ -64,14 +64,8 @@ cargo test -- --ignored --nocapture --test-threads=1
 
 ## Release and Verification
 
-From repository root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trigger-gh-release-gate.ps1 -Repo iamsevens/uiautomator-rs -Ref main
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-validation-gate.ps1 -Mode full -Serial <serial>
-```
-
-The first command is the unified release gate entrypoint (`Release Check` + `Publish Dry Run`).
+Publishing and release gates are defined in repository root `PUBLISHING.md`.
+Release-grade validation and evidence live in `../docs/public/TESTING_RELEASE.md`.
 
 ## Relationship to `uiautomator`
 
