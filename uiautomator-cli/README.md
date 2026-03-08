@@ -24,6 +24,14 @@ Common options:
 
 ## Quick Usage
 
+Install from crates.io:
+
+```bash
+cargo install uiautomator-cli
+```
+
+Then initialize a device:
+
 ```bash
 # initialize a target device
 uiautomator init --serial <serial> --force
@@ -37,6 +45,8 @@ uiautomator restart --serial <serial>
 # uninstall
 uiautomator uninstall --serial <serial>
 ```
+
+If exactly one ADB device is online, `--serial` can be omitted.
 
 ## Build From Source
 

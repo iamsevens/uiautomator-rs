@@ -49,29 +49,39 @@ Note: this repository is not a Cargo workspace; run Cargo commands inside each c
 
 ## Quick Start
 
+Most users only need two steps:
+
+1. Install `uiautomator-cli` once on the host machine.
+2. Use `uiautomator` in application code.
+
 ### 1) Prerequisites
 
 - Android device or emulator with ADB connectivity
 - Rust toolchain
 - `adb` available in `PATH`
 
-### 2) Build
+### 2) Install published crates
 
 ```bash
-cd uiautomator
-cargo build
+cargo install uiautomator-cli
+```
 
-cd ../uiautomator-cli
-cargo build
+Add the library to your project:
+
+```toml
+[dependencies]
+uiautomator = "1.0.1"
+tokio = { version = "1", features = ["full"] }
 ```
 
 ### 3) Initialize device-side environment (CLI)
 
 ```bash
-cd uiautomator-cli
-cargo run -- init --serial <serial> --force
-cargo run -- status --serial <serial>
+uiautomator init --serial <serial> --force
+uiautomator status --serial <serial>
 ```
+
+If exactly one ADB device is online, `--serial` can be omitted.
 
 ### 4) Basic library usage
 
@@ -84,6 +94,18 @@ async fn main() -> uiautomator::Result<()> {
     d.find(Selector::new().text("Settings")).click(None, None).await?;
     Ok(())
 }
+```
+
+`Device::connect(None)` expects exactly one online ADB device. Pass `Some("<serial>")` when multiple devices are connected.
+
+### 5) Build from source (repo contributors)
+
+```bash
+cd uiautomator
+cargo build
+
+cd ../uiautomator-cli
+cargo build
 ```
 
 ## Testing

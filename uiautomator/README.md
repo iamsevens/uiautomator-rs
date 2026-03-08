@@ -14,6 +14,11 @@ Rust async Android UI automation library with a Python `uiautomator2`-style API.
 
 ## Installation
 
+Recommended first-use flow:
+
+1. Run `uiautomator-cli init` once for each target device.
+2. Use this crate in application code.
+
 ```toml
 [dependencies]
 uiautomator = "1.0.1"
@@ -30,6 +35,7 @@ uiautomator = { version = "1.0.1", features = ["atx-agent-install"] }
 Note:
 - The `uiautomator` crate package does not embed multi-arch `atx-agent` binaries to keep publish size within crates.io limits.
 - Recommended setup path is `uiautomator-cli init` (or equivalent external provisioning) before using `AtxAgent` mode.
+- `Device::connect(None)` expects exactly one online ADB device. Pass `Some("<serial>")` when multiple devices are connected.
 
 ## Minimal Example
 
