@@ -1,6 +1,6 @@
 ﻿[package]
 name = "uiautomator"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "Rust Android UI automation library compatible with Python uiautomator2."
 license = "MIT"

@@ -16,7 +16,7 @@ Rust async Android UI automation library with a Python `uiautomator2`-style API.
 
 ```toml
 [dependencies]
-uiautomator = "1.0.0"
+uiautomator = "1.0.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -24,7 +24,7 @@ Optional ATX-Agent installer support:
 
 ```toml
 [dependencies]
-uiautomator = { version = "1.0.0", features = ["atx-agent-install"] }
+uiautomator = { version = "1.0.1", features = ["atx-agent-install"] }
 ```
 
 Note:

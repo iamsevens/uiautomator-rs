@@ -80,7 +80,7 @@ ATX-Agent 是一个运行在 Android 设备上的守护进程，提供：
 
 ```toml
 [dependencies]
-uiautomator = { version = "1.0.0", features = ["atx-agent-install"] }
+uiautomator = { version = "1.0.1", features = ["atx-agent-install"] }
 ```
 
 #### 2. 下载资源文件

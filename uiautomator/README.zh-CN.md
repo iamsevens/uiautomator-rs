@@ -109,7 +109,7 @@
 
 ```toml
 [dependencies]
-uiautomator = "1.0.0"
+uiautomator = "1.0.1"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -1072,7 +1072,7 @@ python -m uiautomator2 init
 
 ```toml
 [dependencies]
-uiautomator = { version = "1.0.0", features = ["atx-agent-install"] }
+uiautomator = { version = "1.0.1", features = ["atx-agent-install"] }
 ```
 
 **2. 下载资源文件**
